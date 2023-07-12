@@ -21,15 +21,11 @@ public class DADC {
         String origin = "dataset/airport_10000_red.csv";
         String add = "dataset/airport_10000.csv";
         String path="dataset/airport.csv";
+
         DADC dadc = new DADC(true,0.01,350);
-//        dadc.pre_EvidenceSet("dataset/airport_100_red.csv",-1);
-//        dadc.mid_EvidenceSet("dataset/airport_100.csv",-1);
-//        System.out.println("==============");
-//        //dadc.last_EvidenceSet2(origin,add);
-//        dadc.last_EvidenceSet();
- //       dadc.new_produce(path,10000);
-    // dadc.builderEvidence(origin,add);
         dadc.new_produce(path,1000);
+        //dadc.buildEvidence(path);
+        //dadc.buildEvidence(origin,add);
     }
     private final boolean noCrossColumn;
     private final double minimumSharedValue = 0.3d;
@@ -62,6 +58,30 @@ public class DADC {
         predicateBuilder = new PredicateBuilder(noCrossColumn, minimumSharedValue, comparableThreshold);
     }
 
+    public void buildEvidence(String dataFp){
+
+        System.out.println("INPUT FILE: " + dataFp);
+        System.out.println("ERROR THRESHOLD: " + threshold);
+
+        // load input data, build predicate space
+        long t00 = System.currentTimeMillis();
+        input = new Input(new RelationalInput(dataFp), -1);
+        predicateBuilder.buildPredicateSpace(input);
+        System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());
+
+        // build pli shards
+        pliShardBuilder = new PliShardBuilder(shardLength, input.getParsedColumns());
+        PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput());
+        long t_pre = System.currentTimeMillis() - t00;
+        System.out.println(" [ADCD] Pre-process time: " + t_pre + "ms");
+
+        evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
+        EvidenceSet evidenceSet = evidenceSetBuilder.buildEvidenceSet(pliShards);
+
+        System.out.println(" [ADCD] evidence set size: " + evidenceSet.size());
+        System.out.println(" [ADCD] evidence count: " + evidenceSet.getTotalCount());
+    }
+
     public void new_produce(String dataFp,int number) throws ExecutionException, InterruptedException {
 
         System.out.println("INPUT FILE: " + dataFp);
@@ -70,34 +90,35 @@ public class DADC {
         // load input data, build predicate space
         long t00 = System.currentTimeMillis();
         input = new Input(new RelationalInput(dataFp), -1);
-        System.out.println(input.getRowCount());
+        //System.out.println(input.getRowCount());
         predicateBuilder.buildPredicateSpace(input);
         System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());
 
         // build pli shards
         pliShardBuilder = new PliShardBuilder(shardLength, input.getParsedColumns());
-        PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput(),1000);
+        PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput(), 1000);
+        //PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput());
         long t_pre = System.currentTimeMillis() - t00;
-        System.out.println("[ADCD] Pre-process time: " + t_pre + "ms");
+        System.out.println(" [ADCD] Pre-process time: " + t_pre + "ms");
         int n = pliShards.length;
-        int first_pli_number = (number+shardLength-1)/shardLength;
-        PliShard[] first = new PliShard[n-first_pli_number];
+        int first_pli_number = (number + shardLength - 1)/shardLength;
+        PliShard[] first = new PliShard[n - first_pli_number];
        // writePliShard(first,dataFp);
        // PliShard[] pliShards1 = readPliShard(dataFp);
-        for(int i=0;i<n-first_pli_number;i++)first[i] = pliShards[i];
+        for(int i = 0; i < n - first_pli_number; i++)
+            first[i] = pliShards[i];
         PliShard[] second = new PliShard[first_pli_number];
-        for(int i=0;i<first_pli_number;i++)second[i] = pliShards[i+n-first_pli_number];
+        for(int i = 0; i < first_pli_number; i++)
+            second[i] = pliShards[i + n - first_pli_number];
         evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSet_f = evidenceSetBuilder.buildEvidenceSet(first);
-//        System.out.println(" [ADCD] evidence set size: " + evidenceSet_f.size());
-//        System.out.println(" [ADCD] evidence count: " + evidenceSet_f.getTotalCount());
+
         evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
-        long pre_time = System.currentTimeMillis();
         EvidenceSet evidenceSet_s = evidenceSetBuilder.buildEvidenceSet(second);
 
-        ApproxEvidenceInverter aei = new ApproxEvidenceInverter(predicateBuilder,true);
+/*        ApproxEvidenceInverter aei = new ApproxEvidenceInverter(predicateBuilder,true);
         long target = (long)Math.ceil(1-threshold)*(input.getRowCount()-1000)*(input.getRowCount()-1001);
-        DenialConstraintSet denialConstraints = aei.buildDenialConstraints(evidenceSet_f, target);
+        DenialConstraintSet denialConstraints = aei.buildDenialConstraints(evidenceSet_f, target);*/
 
         evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSet_t = evidenceSetBuilder.buildEvidenceSet3(first,second);
@@ -130,89 +151,88 @@ public class DADC {
             else{
                 evidenceSet_f.clueToEvidence.put(clue,c.getValue());
             }
-
         }
 
 
         System.out.println(" [ADCD] evidence set size: " + evidenceSet_f.size());
         System.out.println(" [ADCD] evidence count: " + evidenceSet_f.getTotalCount());
 
-       //获得尚未发生改变前的dc有哪些
-       ApproxDynamicEvidence approxDynamicEvidence = new ApproxDynamicEvidence(predicateBuilder,true);
+/*        //获得尚未发生改变前的dc有哪些
+        ApproxDynamicEvidence approxDynamicEvidence = new ApproxDynamicEvidence(predicateBuilder,true);
         long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount()*(input.getRowCount()-1));
         // 获得增量后的dc
         DenialConstraintSet denialConstraints1 = approxDynamicEvidence.buildDynamicDc(evidenceSet_f, denialConstraints, leastEvidenceToCover,predicateBuilder);
-        System.out.println(denialConstraints1.size());
+        System.out.println(denialConstraints1.size());*/
 
 
     }
 
 
 
-    public void builderEvidence(String origin,String newFile) throws ExecutionException, InterruptedException {
-        Input inputOrigin = new Input(new RelationalInput(origin),-1);
+    public void buildEvidence(String originFile,String newFile) throws ExecutionException, InterruptedException {
+
+        System.out.println("INPUT ORIGIN FILE: " + originFile);
+        System.out.println("INPUT NEW FILE: " + newFile);
+        System.out.println("ERROR THRESHOLD: " + threshold);
+
+        Input inputOrigin = new Input(new RelationalInput(originFile),-1);
         predicateBuilder.buildPredicateSpace(inputOrigin);
 
-        PliShardBuilder pliOriginBulider = new PliShardBuilder(shardLength,inputOrigin.getParsedColumns());
-        PliShard[] pliOrigin = pliOriginBulider.buildPliShards(inputOrigin.getIntInput());
+        PliShardBuilder pliOriginBuilder = new PliShardBuilder(shardLength,inputOrigin.getParsedColumns());
+        PliShard[] pliOrigin = pliOriginBuilder.buildPliShards(inputOrigin.getIntInput());
 
-        System.out.println(inputOrigin.getRowCount());
+        //System.out.println(inputOrigin.getRowCount());
 
-        EvidenceSetBuilder evidenceSetBuilderorigin = new EvidenceSetBuilder(predicateBuilder);
-        EvidenceSet evidenceSetorigin = evidenceSetBuilderorigin.buildEvidenceSet(pliOrigin);
+        EvidenceSetBuilder evidenceSetBuilderOrigin = new EvidenceSetBuilder(predicateBuilder);
+        EvidenceSet evidenceSetOrigin = evidenceSetBuilderOrigin.buildEvidenceSet(pliOrigin);
 
-        System.out.println(" [ADCD] evidence set size: " + evidenceSetorigin.size());
-        System.out.println(" [ADCD] evidence count: " + evidenceSetorigin.getTotalCount());
+        System.out.println(" [ADCD] original evidence set size: " + evidenceSetOrigin.size());
+        System.out.println(" [ADCD] evidence count: " + evidenceSetOrigin.getTotalCount());
 
-        Input inputNewFile = new Input(new RelationalInput(newFile));
-        PliShardBuilder pliNewFileBuilder = new PliShardBuilder(shardLength,inputNewFile.getParsedColumns());
-        PliShard[] pliNewFile = pliNewFileBuilder.buildPliShards(inputNewFile.getIntInput(),1000900000,10000000);
+        Input inputNew = new Input(new RelationalInput(newFile), -1);
+        PliShardBuilder pliNewFileBuilder = new PliShardBuilder(shardLength,inputNew.getParsedColumns());
+        PliShard[] pliNew = pliNewFileBuilder.buildPliShards(inputNew.getIntInput());
+
         EvidenceSetBuilder evidenceSetBuilderNew = new EvidenceSetBuilder(predicateBuilder);
-        EvidenceSet evidenceSetNew = evidenceSetBuilderNew.buildEvidenceSet(pliNewFile);
-
-//  System.out.println(inputNewFile.getRowCount());
-        EvidenceSetBuilder evidenceSetBuilderlast = new EvidenceSetBuilder(predicateBuilder);
-        EvidenceSet evidenceSetlast = evidenceSetBuilderlast.buildEvidenceSet3(pliNewFile,pliOrigin);
-
-
-        for(var c:evidenceSetNew.clueToEvidence.entrySet()){
-            long clue = c.getKey();
-            if(evidenceSetorigin.clueToEvidence.containsKey(clue)){
-                Evidence tmp = evidenceSetorigin.clueToEvidence.get(clue);
-                tmp.count+=c.getValue().count;
-                evidenceSetorigin.clueToEvidence.put(clue,tmp);
-            }
-            else{
-                evidenceSetorigin.clueToEvidence.put(clue,c.getValue());
-            }
-
-        }
-
-        for(var c:evidenceSetlast.clueToEvidence.entrySet()){
-            long clue = c.getKey();
-            if(evidenceSetorigin.clueToEvidence.containsKey(clue)){
-                Evidence tmp = evidenceSetorigin.clueToEvidence.get(clue);
-                tmp.count+=c.getValue().count;
-                evidenceSetorigin.clueToEvidence.put(clue,tmp);
-            }
-            else{
-                evidenceSetorigin.clueToEvidence.put(clue,c.getValue());
-            }
-
-        }
-
-        System.out.println(" [ADCD] evidence set size: " + evidenceSetNew.size());
+        EvidenceSet evidenceSetNew = evidenceSetBuilderNew.buildEvidenceSet(pliNew);
+        System.out.println(" [ADCD] new evidence set size: " + evidenceSetNew.size());
         System.out.println(" [ADCD] evidence count: " + evidenceSetNew.getTotalCount());
 
-        System.out.println(" [ADCD] evidence set size: " + evidenceSetlast.size());
-        System.out.println(" [ADCD] evidence count: " + evidenceSetlast.getTotalCount());
+        //System.out.println(inputNewFile.getRowCount());
+        EvidenceSetBuilder evidenceSetBuilderCross = new EvidenceSetBuilder(predicateBuilder);
+        EvidenceSet evidenceSetCross = evidenceSetBuilderCross.buildEvidenceSet3(pliNew,pliOrigin);
 
-        System.out.println(" [ADCD] evidence set size: " + evidenceSetorigin.size());
-        System.out.println(" [ADCD] evidence count: " + evidenceSetorigin.getTotalCount());
+        System.out.println(" [ADCD] cross evidence set size: " + evidenceSetCross.size());
+        System.out.println(" [ADCD] evidence count: " + evidenceSetCross.getTotalCount());
 
+        EvidenceSet evidenceSet = evidenceSetOrigin;
 
+        for(var c: evidenceSetNew.clueToEvidence.entrySet()){
+            long clue = c.getKey();
+            if(evidenceSet.clueToEvidence.containsKey(clue)){
+                Evidence tmp = evidenceSet.clueToEvidence.get(clue);
+                tmp.count += c.getValue().count;
+                evidenceSet.clueToEvidence.put(clue,tmp);
+            }
+            else{
+                evidenceSet.clueToEvidence.put(clue,c.getValue());
+            }
 
+        }
 
+        for(var c: evidenceSetCross.clueToEvidence.entrySet()){
+            long clue = c.getKey();
+            if(evidenceSet.clueToEvidence.containsKey(clue)){
+                Evidence tmp = evidenceSet.clueToEvidence.get(clue);
+                tmp.count+=c.getValue().count;
+                evidenceSet.clueToEvidence.put(clue,tmp);
+            }
+            else{
+                evidenceSet.clueToEvidence.put(clue,c.getValue());
+            }
+        }
 
+        System.out.println(" [ADCD] evidence set size: " + evidenceSet.size());
+        System.out.println(" [ADCD] evidence count: " + evidenceSet.getTotalCount());
     }
 }

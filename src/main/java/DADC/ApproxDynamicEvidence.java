@@ -481,20 +481,3 @@ public class ApproxDynamicEvidence {
     }
 }
 
-class Pair{
-    List<Evidence> unhitEvidenceSet;
-    List<Evidence> hitEvidenceSet;
-    boolean flag;
-    long needEvidence;
-    LongBitSet predicateUnchosed;
-    LongBitSet DCCandicate;
-    public Pair(List<Evidence> unhitEvidenceSet,boolean flag,long needEvidence,LongBitSet predicateUnchosed,LongBitSet DCCandicate,List<Evidence> hitEvidenceSet){
-        this.predicateUnchosed = predicateUnchosed;
-        this.unhitEvidenceSet = unhitEvidenceSet;
-        this.flag = flag;
-        this.needEvidence = needEvidence;
-        this.DCCandicate = DCCandicate;
-        this.hitEvidenceSet = hitEvidenceSet;
-
-    }
-}

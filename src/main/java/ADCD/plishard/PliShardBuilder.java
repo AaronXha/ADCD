@@ -101,24 +101,24 @@ public class PliShardBuilder {
             return new PliShard[0];
 
         int rowBeg = 0, rowEnd = intInput[0].length;
-        int nShards2 = (number+shardLength-1)/shardLength;
+        int nShards2 = (number + shardLength - 1) / shardLength;
         int nShards = (rowEnd - number - 1) / shardLength + 1;
-        PliShard[] pliShards = new PliShard[nShards+nShards2];
-        for(int i=0;i<nShards;i++){
-            int shardBeg = rowBeg + i * shardLength, shardEnd = Math.min(rowEnd-number,shardBeg + shardLength);
+        PliShard[] pliShards = new PliShard[nShards + nShards2];
+        for(int i = 0; i < nShards; i++){
+            int shardBeg = rowBeg + i * shardLength, shardEnd = Math.min(rowEnd - number,shardBeg + shardLength);
             List<Pli> plis = new ArrayList<>();
             for (int col = 0; col < intInput.length; col++)
                 plis.add(buildPli(isNum[col], intInput[col], shardBeg, shardEnd));
             pliShards[i] = new PliShard(plis, shardBeg, shardEnd);
         }
         int count = 0;
-        for(int i=0; i< nShards2; i++) {
-            int shardBeg = rowEnd-number + i * shardLength, shardEnd = Math.min(rowEnd, shardBeg + shardLength);
-            count+=shardEnd-shardBeg;
+        for(int i = 0; i < nShards2; i++) {
+            int shardBeg = rowEnd - number + i * shardLength, shardEnd = Math.min(rowEnd, shardBeg + shardLength);
+            count += shardEnd - shardBeg;
             List<Pli> plis = new ArrayList<>();
             for (int col = 0; col < intInput.length; col++)
                 plis.add(buildPli(isNum[col], intInput[col], shardBeg, shardEnd));
-            pliShards[i+nShards] = new PliShard(plis, shardBeg, shardEnd);
+            pliShards[i + nShards] = new PliShard(plis, shardBeg, shardEnd);
         }
 
 //        IntStream.range(0, nShards).forEach(i -> {
