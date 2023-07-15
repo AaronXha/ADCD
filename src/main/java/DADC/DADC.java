@@ -22,10 +22,14 @@ public class DADC {
         String add = "dataset/airport_10000.csv";
         String path="dataset/airport.csv";
 
+/*        String origin = "dataset/test_origin.csv";
+        String add = "dataset/test_new.csv";
+        String path="dataset/test.csv";*/
+
         DADC dadc = new DADC(true,0.01,350);
-        dadc.new_produce(path,1000);
+        //dadc.new_produce(path,1000);
         //dadc.buildEvidence(path);
-        //dadc.buildEvidence(origin,add);
+        dadc.buildEvidence(origin,add);
     }
     private final boolean noCrossColumn;
     private final double minimumSharedValue = 0.3d;
@@ -47,9 +51,7 @@ public class DADC {
     private PredicateBuilder predicateBuilder;
     private PliShardBuilder pliShardBuilder;
     private EvidenceSetBuilder evidenceSetBuilder;
-    private EvidenceSet pre_EvidenceSet;
-    private EvidenceSet mid_EvidenceSet;
-    private EvidenceSet next_EvidenceSet;
+
 
     public DADC(boolean _noCrossColumn, double _threshold, int _len) {
         noCrossColumn = _noCrossColumn;
@@ -181,8 +183,6 @@ public class DADC {
         PliShardBuilder pliOriginBuilder = new PliShardBuilder(shardLength,inputOrigin.getParsedColumns());
         PliShard[] pliOrigin = pliOriginBuilder.buildPliShards(inputOrigin.getIntInput());
 
-        //System.out.println(inputOrigin.getRowCount());
-
         EvidenceSetBuilder evidenceSetBuilderOrigin = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSetOrigin = evidenceSetBuilderOrigin.buildEvidenceSet(pliOrigin);
 
@@ -195,12 +195,12 @@ public class DADC {
 
         EvidenceSetBuilder evidenceSetBuilderNew = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSetNew = evidenceSetBuilderNew.buildEvidenceSet(pliNew);
+
         System.out.println(" [ADCD] new evidence set size: " + evidenceSetNew.size());
         System.out.println(" [ADCD] evidence count: " + evidenceSetNew.getTotalCount());
 
-        //System.out.println(inputNewFile.getRowCount());
         EvidenceSetBuilder evidenceSetBuilderCross = new EvidenceSetBuilder(predicateBuilder);
-        EvidenceSet evidenceSetCross = evidenceSetBuilderCross.buildEvidenceSet3(pliNew,pliOrigin);
+        EvidenceSet evidenceSetCross = evidenceSetBuilderCross.buildEvidenceSet3(pliOrigin,pliNew);
 
         System.out.println(" [ADCD] cross evidence set size: " + evidenceSetCross.size());
         System.out.println(" [ADCD] evidence count: " + evidenceSetCross.getTotalCount());

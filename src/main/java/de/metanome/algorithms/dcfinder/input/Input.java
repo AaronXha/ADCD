@@ -39,6 +39,18 @@ public class Input {
         intInput = buildIntInput(parsedColumns);
     }
 
+    public Input(RelationalInput relationalInputOrigin, RelationalInput relationalInputNew){
+        name = relationalInputOrigin.relationName + relationalInputNew.relationName;
+        providerS = new IndexProvider<>();
+        providerL = new IndexProvider<>();
+        providerD = new IndexProvider<>();
+        Column[] columns = readRelationalInputToColumns(relationalInputOrigin, relationalInputNew);
+        colCount = columns.length;
+        rowCount = colCount > 0 ? columns[0].getLineCount() : 0;
+        parsedColumns = buildParsedColumns(columns);
+        intInput = buildIntInput(parsedColumns);
+    }
+
     private Column[] readRelationalInputToColumns(RelationalInput relationalInput, int rowLimit) {
         final int columnCount = relationalInput.numberOfColumns();
         Column[] columns = new Column[columnCount];
@@ -64,6 +76,22 @@ public class Input {
         }
         return columns;
     }
+
+    private Column[] readRelationalInputToColumns(RelationalInput relationalInputOrigin, RelationalInput relationalInputNew) {
+        int columnCountOrigin = relationalInputOrigin.numberOfColumns();
+        int columnCountNew = relationalInputNew.numberOfColumns();
+        final int columnCountSum = relationalInputOrigin.numberOfColumns() + relationalInputNew.numberOfColumns;
+        Column[] columns = new Column[columnCountSum];
+
+        for (int i = 0; i < columnCountOrigin; ++i)
+            columns[i] = new Column(relationalInputOrigin.relationName(), relationalInputOrigin.columnNames[i]);
+
+        for(int j = columnCountOrigin; j < columnCountNew; ++j)
+            columns[j] = new Column(relationalInputNew.relationName(), relationalInputNew.columnNames[j]);
+
+        return columns;
+    }
+
     private Column[] readRelationalInputToColumns(RelationalInput relationalInput, int rowLimit,int start) {
         final int columnCount = relationalInput.numberOfColumns();
         Column[] columns = new Column[columnCount];

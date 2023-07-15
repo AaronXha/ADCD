@@ -30,7 +30,7 @@ public class EvidenceSetBuilder {
         return fullEvidenceSet;
     }
 
-    public EvidenceSet buildEvidenceSet3(PliShard[] left_pliShards,PliShard[] right_pliShard) throws ExecutionException, InterruptedException {
+    public EvidenceSet buildEvidenceSet3(PliShard[] left_pliShards,PliShard[] right_pliShard) {
         if (left_pliShards.length != 0 && right_pliShard.length != 0) {
             HashLongLongMap clueSet = buildCrossClueSet(left_pliShards, right_pliShard);
 
@@ -55,15 +55,20 @@ public class EvidenceSetBuilder {
     private HashLongLongMap buildCrossClueSet(PliShard[] left_pliShards,PliShard[] right_pliShards){
         List<HashLongLongMap> clueSetList = new ArrayList<>();
         HashLongLongMap result = HashLongLongMaps.newMutableMap();
+
         for (int i = 0; i < left_pliShards.length; i++) {
             for (int j = 0; j < right_pliShards.length; j++) {
+/*                System.out.println(i);
+                System.out.println(j);
+                System.out.println();*/
                 ClueSetBuilder clueSetBuilder = new BinaryPliClueSetBuilder(left_pliShards[i], right_pliShards[j]);
                 clueSetList.add(clueSetBuilder.buildClueSet());
+                //System.out.println(clueSetBuilder.buildClueSet().entrySet());
             }
         }
 
-        for (int i = 0; i < clueSetList.size(); i++) {
-            for (var e : clueSetList.get(i).entrySet()) {
+        for (HashLongLongMap hashLongLongMap : clueSetList) {
+            for (var e : hashLongLongMap.entrySet()) {
                 result.addValue(e.getKey(), e.getValue(), 0);
             }
         }
