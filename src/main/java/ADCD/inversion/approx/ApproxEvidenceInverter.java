@@ -65,6 +65,17 @@ public class ApproxEvidenceInverter {
         constraints.minimize();
 
         System.out.println("  [PACS] Min DC size : " + constraints.size());
+
+        for (DenialConstraint dc: constraints){
+            for(int i = 0;  i < nPredicates; i++)
+                dc.predicateInfluence.add(0L);
+            for(Evidence evi: evidences){
+                for (int i = evi.bitset.nextSetBit(0); i >= 0; i = evi.bitset.nextSetBit(i + 1)) {
+                    dc.predicateInfluence.set(i ,dc.predicateInfluence.get(i) + evi.count);
+                }
+            }
+        }
+
         return constraints;
     }
 
@@ -153,7 +164,7 @@ public class ApproxEvidenceInverter {
                 //如果我需要覆盖了当前的  我可选的是addpredicate和notevi的交集
                 LongBitSet canAdd = invalidDC.cand.getAndNot(evi);
                 for (int i = canAdd.nextSetBit(0); i >= 0; i = canAdd.nextSetBit(i + 1)) {
-                    DCCandidate validDC = new DCCandidate(invalidDC.bitSet.clone());
+                    DCCandidate validDC = invalidDC.clone();
                     validDC.bitSet.set(i);
                     if (!approxCovers.containsSubset(validDC))
                         approxCovers.add(validDC);

@@ -4,9 +4,9 @@ import ch.javasoft.bitset.LongBitSet;
 
 public class DCCandidate {
 
-   public LongBitSet bitSet;
+    public LongBitSet bitSet;
     //候选者
-  public   LongBitSet cand;
+    public LongBitSet cand;
 
     public DCCandidate(LongBitSet bitSet) {
         this.bitSet = bitSet;

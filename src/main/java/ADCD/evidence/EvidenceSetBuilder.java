@@ -30,9 +30,9 @@ public class EvidenceSetBuilder {
         return fullEvidenceSet;
     }
 
-    public EvidenceSet buildEvidenceSet3(PliShard[] left_pliShards,PliShard[] right_pliShard) {
+    public EvidenceSet buildEvidenceSet3(PliShard[] left_pliShards,PliShard[] right_pliShard) throws ExecutionException, InterruptedException {
         if (left_pliShards.length != 0 && right_pliShard.length != 0) {
-            HashLongLongMap clueSet = buildCrossClueSet(left_pliShards, right_pliShard);
+            HashLongLongMap clueSet = buildClueSet3(left_pliShards, right_pliShard);
 
             fullEvidenceSet.build(clueSet);
         }

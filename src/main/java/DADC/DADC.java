@@ -22,14 +22,10 @@ public class DADC {
         String add = "dataset/airport_10000.csv";
         String path="dataset/airport.csv";
 
-/*        String origin = "dataset/test_origin.csv";
-        String add = "dataset/test_new.csv";
-        String path="dataset/test.csv";*/
-
         DADC dadc = new DADC(true,0.01,350);
-        //dadc.new_produce(path,1000);
-        //dadc.buildEvidence(path);
-        dadc.buildEvidence(origin,add);
+        //dadc.new_produce(path,10000);
+        dadc.buildEvidence(origin);
+        //dadc.buildEvidence(origin,add);
     }
     private final boolean noCrossColumn;
     private final double minimumSharedValue = 0.3d;
@@ -44,9 +40,7 @@ public class DADC {
     // configure of ApproxCoverSearcher
     private final double threshold;
 
-    int sum = 0;
-
-   // private String dataFp;
+    // private String dataFp;
     private Input input;
     private PredicateBuilder predicateBuilder;
     private PliShardBuilder pliShardBuilder;
@@ -75,13 +69,21 @@ public class DADC {
         pliShardBuilder = new PliShardBuilder(shardLength, input.getParsedColumns());
         PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput());
         long t_pre = System.currentTimeMillis() - t00;
-        System.out.println(" [ADCD] Pre-process time: " + t_pre + "ms");
+        System.out.println(" [TIME] Pre-process time: " + t_pre + "ms");
 
+        long t01 = System.currentTimeMillis();
         evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSet = evidenceSetBuilder.buildEvidenceSet(pliShards);
-
+        long t_evi = System.currentTimeMillis() - t01;
         System.out.println(" [ADCD] evidence set size: " + evidenceSet.size());
         System.out.println(" [ADCD] evidence count: " + evidenceSet.getTotalCount());
+        System.out.println(" [TIME] Build evidence time: " + t_evi + "ms");
+
+        long t02 = System.currentTimeMillis();ApproxEvidenceInverter aei = new ApproxEvidenceInverter(predicateBuilder,true);
+        long target = (long)Math.ceil(1 - threshold) * (input.getRowCount())*(input.getRowCount() - 1);
+        DenialConstraintSet denialConstraints = aei.buildDenialConstraints(evidenceSet, target);
+        long t_aei = System.currentTimeMillis() - t02;
+        System.out.println(" [TIME] AEI time: " + t_aei + "ms");
     }
 
     public void new_produce(String dataFp,int number) throws ExecutionException, InterruptedException {
@@ -98,37 +100,44 @@ public class DADC {
 
         // build pli shards
         pliShardBuilder = new PliShardBuilder(shardLength, input.getParsedColumns());
-        PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput(), 1000);
-        //PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput());
+        //PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput(), 1000);
+        PliShard[] pliShards = pliShardBuilder.buildPliShards(input.getIntInput());
         long t_pre = System.currentTimeMillis() - t00;
-        System.out.println(" [ADCD] Pre-process time: " + t_pre + "ms");
+        System.out.println(" [TIME] Pre-process time: " + t_pre + "ms");
+
         int n = pliShards.length;
         int first_pli_number = (number + shardLength - 1)/shardLength;
+
         PliShard[] first = new PliShard[n - first_pli_number];
-       // writePliShard(first,dataFp);
-       // PliShard[] pliShards1 = readPliShard(dataFp);
-        for(int i = 0; i < n - first_pli_number; i++)
-            first[i] = pliShards[i];
+        if (n - first_pli_number >= 0) System.arraycopy(pliShards, 0, first, 0, n - first_pli_number);
+
         PliShard[] second = new PliShard[first_pli_number];
-        for(int i = 0; i < first_pli_number; i++)
-            second[i] = pliShards[i + n - first_pli_number];
+        System.arraycopy(pliShards, n - first_pli_number, second, 0, first_pli_number);
+
+        long t01 = System.currentTimeMillis();
         evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSet_f = evidenceSetBuilder.buildEvidenceSet(first);
+        System.out.println(" [ADCD] origin evidence set size: " + evidenceSet_f.size());
+        System.out.println(" [ADCD] evidence count: " + evidenceSet_f.getTotalCount());
 
         evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSet_s = evidenceSetBuilder.buildEvidenceSet(second);
-
-/*        ApproxEvidenceInverter aei = new ApproxEvidenceInverter(predicateBuilder,true);
-        long target = (long)Math.ceil(1-threshold)*(input.getRowCount()-1000)*(input.getRowCount()-1001);
-        DenialConstraintSet denialConstraints = aei.buildDenialConstraints(evidenceSet_f, target);*/
+        System.out.println(" [ADCD] addition evidence set size: " + evidenceSet_s.size());
+        System.out.println(" [ADCD] evidence count: " + evidenceSet_s.getTotalCount());
 
         evidenceSetBuilder = new EvidenceSetBuilder(predicateBuilder);
         EvidenceSet evidenceSet_t = evidenceSetBuilder.buildEvidenceSet3(first,second);
+        long t_evi = System.currentTimeMillis() - t01;
+        System.out.println(" [ADCD] cross evidence set size: " + evidenceSet_t.size());
+        System.out.println(" [ADCD] evidence count: " + evidenceSet_t.getTotalCount());
+        System.out.println(" [TIME] Build evidence time: " + t_evi + "ms");
 
-//        System.out.println("================");
-//        System.out.println(" [ADCD] evidence set size: " + evidenceSet_t.size());
-//        System.out.println(" [ADCD] evidence count: " + evidenceSet_t.getTotalCount());
-
+        long t02 = System.currentTimeMillis();
+        ApproxEvidenceInverter aei = new ApproxEvidenceInverter(predicateBuilder,true);
+        long target = (long)Math.ceil(1 - threshold) * (input.getRowCount() - number) * (input.getRowCount() - number - 1);
+        DenialConstraintSet denialConstraints = aei.buildDenialConstraints(evidenceSet_f, target);
+        long t_aei = System.currentTimeMillis() - t02;
+        System.out.println(" [TIME] AEI time: " + t_aei + "ms");
 
         for(var c:evidenceSet_s.clueToEvidence.entrySet()){
             long clue = c.getKey();
@@ -138,7 +147,6 @@ public class DADC {
                 evidenceSet_f.clueToEvidence.put(clue,tmp);
             }
             else{
-
                 evidenceSet_f.clueToEvidence.put(clue,c.getValue());
             }
 
@@ -155,20 +163,20 @@ public class DADC {
             }
         }
 
-
-        System.out.println(" [ADCD] evidence set size: " + evidenceSet_f.size());
+        System.out.println(" [ADCD] total evidence set size: " + evidenceSet_f.size());
         System.out.println(" [ADCD] evidence count: " + evidenceSet_f.getTotalCount());
 
-/*        //获得尚未发生改变前的dc有哪些
+        long t03 = System.currentTimeMillis();
+        //获得尚未发生改变前的dc有哪些
         ApproxDynamicEvidence approxDynamicEvidence = new ApproxDynamicEvidence(predicateBuilder,true);
-        long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount()*(input.getRowCount()-1));
+        long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount()*(input.getRowCount() - 1));
         // 获得增量后的dc
-        DenialConstraintSet denialConstraints1 = approxDynamicEvidence.buildDynamicDc(evidenceSet_f, denialConstraints, leastEvidenceToCover,predicateBuilder);
-        System.out.println(denialConstraints1.size());*/
-
+        DenialConstraintSet denialConstraints1 = approxDynamicEvidence.build(evidenceSet_f, denialConstraints, leastEvidenceToCover, predicateBuilder);
+        long t_dynamic = System.currentTimeMillis() - t03;
+        System.out.println("  [PACS] Min DC size : " + denialConstraints1.size());
+        System.out.println(" [TIME] Dynamic time: " + t_dynamic + "ms");
 
     }
-
 
 
     public void buildEvidence(String originFile,String newFile) throws ExecutionException, InterruptedException {

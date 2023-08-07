@@ -20,6 +20,5 @@ public class Pair {
         this.needEvidence = needEvidence;
         this.DCCandicate = DCCandicate;
         this.hitEvidenceSet = hitEvidenceSet;
-
     }
 }
