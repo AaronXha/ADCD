@@ -54,7 +54,6 @@ public class ClueSetTask extends CountedCompleter<HashLongLongMap> {
                 ClueSetBuilder builder = getClueSetBuilder(taskBeg);
                 if (builder != null) {
                     partialClueSet = builder.buildClueSet();
-                    //System.out.println(partialClueSet.entrySet());
                 }
                 else partialClueSet = HashLongLongMaps.newMutableMap();
             }
@@ -67,9 +66,7 @@ public class ClueSetTask extends CountedCompleter<HashLongLongMap> {
         // taskID = i * (i + 1) / 2 + j
         int i = lowerBound(searchIndexes, taskID);
         int j = i - (searchIndexes[i] - taskID);
-/*        System.out.println(i);
-        System.out.println(j);
-        System.out.println();*/
+
         return i == j ? new UnaryPliClueSetBuilder(pliShards[i]) : new BinaryPliClueSetBuilder(pliShards[i], pliShards[j]);
     }
 

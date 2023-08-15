@@ -11,7 +11,8 @@ public class Input {
     private final String name;
     private final int colCount;
     private final int rowCount;
-
+    private int originRowCount;
+    private int newRowCount;
     private final List<ParsedColumn<?>> parsedColumns;
 
     private final int[][] intInput;   // int expression of the dataset
@@ -44,9 +45,11 @@ public class Input {
         providerS = new IndexProvider<>();
         providerL = new IndexProvider<>();
         providerD = new IndexProvider<>();
+
         Column[] columns = readRelationalInputToColumns(relationalInputOrigin, relationalInputNew);
         colCount = columns.length;
         rowCount = colCount > 0 ? columns[0].getLineCount() : 0;
+
         parsedColumns = buildParsedColumns(columns);
         intInput = buildIntInput(parsedColumns);
     }
@@ -78,16 +81,37 @@ public class Input {
     }
 
     private Column[] readRelationalInputToColumns(RelationalInput relationalInputOrigin, RelationalInput relationalInputNew) {
-        int columnCountOrigin = relationalInputOrigin.numberOfColumns();
-        int columnCountNew = relationalInputNew.numberOfColumns();
-        final int columnCountSum = relationalInputOrigin.numberOfColumns() + relationalInputNew.numberOfColumns;
-        Column[] columns = new Column[columnCountSum];
+        final int columnCount = relationalInputOrigin.numberOfColumns();
+        Column[] columns = new Column[columnCount];
+        originRowCount = 0;
+        newRowCount = 0;
 
-        for (int i = 0; i < columnCountOrigin; ++i)
+        for (int i = 0; i < columnCount; ++i)
             columns[i] = new Column(relationalInputOrigin.relationName(), relationalInputOrigin.columnNames[i]);
 
-        for(int j = columnCountOrigin; j < columnCountNew; ++j)
-            columns[j] = new Column(relationalInputNew.relationName(), relationalInputNew.columnNames[j]);
+        try {
+            CsvReader csvReaderOrigin = new CsvReader(relationalInputOrigin.filePath, ',', StandardCharsets.UTF_8);
+            csvReaderOrigin.readHeaders();    // skip the header
+            while (csvReaderOrigin.readRecord()) {
+                originRowCount++;
+                String[] line = csvReaderOrigin.getValues();
+                for (int i = 0; i < columnCount; ++i)
+                    columns[i].addLine(line[i]);
+            }
+            csvReaderOrigin.close();
+
+            CsvReader csvReaderNew = new CsvReader(relationalInputNew.filePath, ',', StandardCharsets.UTF_8);
+            csvReaderNew.readHeaders();
+            while (csvReaderNew.readRecord()) {
+                newRowCount++;
+                String[] line = csvReaderNew.getValues();
+                for (int i = 0; i < columnCount; ++i)
+                    columns[i].addLine(line[i]);
+            }
+            csvReaderNew.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         return columns;
     }
@@ -183,6 +207,13 @@ public class Input {
 
     public String getName() {
         return name;
+    }
+
+    public int getOriginRowCount(){
+        return originRowCount;
+    }
+    public int getNewRowCount(){
+        return newRowCount;
     }
 
 }

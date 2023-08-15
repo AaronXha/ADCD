@@ -66,16 +66,6 @@ public class ApproxEvidenceInverter {
 
         System.out.println("  [PACS] Min DC size : " + constraints.size());
 
-        for (DenialConstraint dc: constraints){
-            for(int i = 0;  i < nPredicates; i++)
-                dc.predicateInfluence.add(0L);
-            for(Evidence evi: evidences){
-                for (int i = evi.bitset.nextSetBit(0); i >= 0; i = evi.bitset.nextSetBit(i + 1)) {
-                    dc.predicateInfluence.set(i ,dc.predicateInfluence.get(i) + evi.count);
-                }
-            }
-        }
-
         return constraints;
     }
 

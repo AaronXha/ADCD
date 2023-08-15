@@ -25,8 +25,7 @@ public class MyClueSetTask {
         HashLongLongMap result = HashLongLongMaps.newMutableMap();
         for (int i = 0; i < left_pliShards.length; i++) {
             for (int j = 0; j < right_pliShards.length; j++) {
-//                Future<HashLongLongMap> f = executorService.submit(new MyThread(i,j,left_pliShards,right_pliShards));
-//                copyOnWriteArrayList.add(f.get());
+
                 completionService.submit(new MyThread(i, j, left_pliShards, right_pliShards));
             }
         }

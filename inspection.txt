@@ -40,3 +40,64 @@ ERROR THRESHOLD: 0.01
    [PACS] Total DC size: 70
    [PACS] Min DC size : 63
   [TIME] AEI time: 72ms
+
+  INPUT FILE: dataset/Tax.csv
+  ERROR THRESHOLD: 0.01
+  15
+   [ADCD] Predicate space size: 50
+   [TIME] Pre-process time: 865ms
+    [CLUE BUILDER] # of bits in clue: 20
+    [CLUE BUILDER] task count: 41041
+   [ADCD] evidence set size: 6335
+   [ADCD] evidence count: 9999900000
+   [TIME] Build evidence time: 18039ms
+    [PACS] Inverting evidences...
+    [PACS] Min cover size: 14358
+    [PACS] Total DC size: 7450
+    [PACS] Min DC size : 2947
+   [TIME] AEI time: 4386ms
+
+   INPUT FILE: dataset/Tax.csv
+   ERROR THRESHOLD: 0.01
+   15
+    [ADCD] Predicate space size: 50
+    [TIME] Pre-process time: 840ms
+     [CLUE BUILDER] # of bits in clue: 20
+     [CLUE BUILDER] task count: 33153
+    [ADCD] origin evidence set size: 6211
+    [ADCD] evidence count: 8090912550
+     [CLUE BUILDER] # of bits in clue: 20
+     [CLUE BUILDER] task count: 435
+    [ADCD] addition evidence set size: 4065
+    [ADCD] evidence count: 100992450
+     [CLUE BUILDER] # of bits in clue: 20
+    [ADCD] cross evidence set size: 5486
+    [ADCD] evidence count: 1807995000
+    [TIME] Build evidence time: 22815ms
+     [PACS] Inverting evidences...
+     [PACS] Min cover size: 0
+     [PACS] Total DC size: 0
+     [PACS] Min DC size : 0
+    [TIME] AEI time: 413ms
+    [ADCD] total evidence set size: 6335
+    [ADCD] evidence count: 9999900000
+     [PACS] Min DC size : 0
+    [TIME] Dynamic time: 1ms
+
+    INPUT ORIGIN FILE: dataset/airport_10000_red.csv
+    INPUT NEW FILE: dataset/airport_10000.csv
+    ERROR THRESHOLD: 0.01
+    11
+      [CLUE BUILDER] # of bits in clue: 12
+      [CLUE BUILDER] task count: 8385
+     [ADCD] original evidence set size: 449
+     [ADCD] evidence count: 2035137656
+      [CLUE BUILDER] # of bits in clue: 12
+      [CLUE BUILDER] task count: 435
+     [ADCD] new evidence set size: 119
+     [ADCD] evidence count: 99990000
+      [CLUE BUILDER] # of bits in clue: 12
+     [ADCD] cross evidence set size: 257
+     [ADCD] evidence count: 902260000
+     [ADCD] evidence set size: 455
+     [ADCD] evidence count: 3037387656

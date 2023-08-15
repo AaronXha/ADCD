@@ -18,9 +18,6 @@ import java.util.Map;
 public class DenialConstraint {
 
     private final PredicateSet predicateSet;
-
-    public List<Long> predicateInfluence = new ArrayList<>();
-
     public DenialConstraint(PredicateSet predicateSet) {
         this.predicateSet = predicateSet;
     }
