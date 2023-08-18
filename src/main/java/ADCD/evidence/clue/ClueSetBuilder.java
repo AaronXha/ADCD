@@ -60,7 +60,6 @@ abstract public class ClueSetBuilder {
     }
 
     static LongBitSet[] correctionMap;    // Predicate id -> its correction mask
-
     static List<PredicatePack> strSinglePacks;  // String single-column predicate packs
     static List<PredicatePack> strCrossPacks;   // String cross-column predicate packs
     static List<PredicatePack> numSinglePacks;  // numerical single-column predicate packs

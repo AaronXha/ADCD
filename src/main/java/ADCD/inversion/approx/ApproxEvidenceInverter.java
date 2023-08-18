@@ -14,7 +14,7 @@ import java.util.*;
 public class ApproxEvidenceInverter {
 
     private final int nPredicates;
-    private LongBitSet[] mutexMap;   // i -> indices of predicates from the same column pair with predicate i
+    public LongBitSet[] mutexMap;   // i -> indices of predicates from the same column pair with predicate i
     private Evidence[] evidences;//将所有evidence从evidenceset里面拿出来。
 
     private ArrayTreeSearch approxCovers;//前缀树
@@ -104,7 +104,7 @@ public class ApproxEvidenceInverter {
             Collection<DCCandidate> unhitEviDCs = dcCandidates.getAndRemoveGeneralizations(evi);
 
             // hit evidences[e] later
-            SearchNode nd = new SearchNode(e, addablePredicates.clone(), dcCandidates, unhitEviDCs, target,status+e);
+            SearchNode nd = new SearchNode(e, addablePredicates.clone(), dcCandidates, unhitEviDCs, target,status + e);
             nodes.push(nd);
 
             // unhit evidences[e]  所有的dc候选者都已经覆盖了当前的这个evi  那么就不存在不覆盖这个evi的可能了。

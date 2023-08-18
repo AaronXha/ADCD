@@ -6,7 +6,7 @@ import de.metanome.algorithms.dcfinder.predicates.sets.PredicateSet;
 public class Evidence {
 
     public long count;
-    private long clue;
+    public long clue;
     public LongBitSet bitset;
     //PredicateSet predicates;
 

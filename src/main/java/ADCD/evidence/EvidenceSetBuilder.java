@@ -1,21 +1,17 @@
 package ADCD.evidence;
 
-import ADCD.evidence.clue.BinaryPliClueSetBuilder;
 import ADCD.evidence.clue.ClueSetBuilder;
 import ADCD.evidence.evidenceSet.EvidenceSet;
 import ADCD.plishard.PliShard;
 import ADCD.predicate.PredicateBuilder;
 import com.koloboke.collect.map.hash.HashLongLongMap;
-import com.koloboke.collect.map.hash.HashLongLongMaps;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 
 public class EvidenceSetBuilder {
 
-    private  EvidenceSet fullEvidenceSet;
+    private EvidenceSet fullEvidenceSet;
 
     public EvidenceSetBuilder(PredicateBuilder predicateBuilder) {
         ClueSetBuilder.configure(predicateBuilder);

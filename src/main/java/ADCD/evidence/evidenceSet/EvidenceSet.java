@@ -18,15 +18,19 @@ public class EvidenceSet implements Iterable<Evidence> {
     private LongBitSet cardinalityMask;
     //当clue中的某个位子是1，代表需要修改，通过xor修改原始的cl0，得到正确的结果。
     private LongBitSet[] correctMap;
-
-    //private HashObjLongMap<Evidence> evidenceSet = HashObjLongMaps.newMutableMap();
     //最后的结果
     public HashMap<Long, Evidence> clueToEvidence = new HashMap<>(); // TODO: compare HashMap and HashLongObjMap
     //private Map<Long, Evidence> clueToEvidence = HashLongObjMaps.newMutableMap();
 
     public EvidenceSet(PredicateBuilder pBuilder, LongBitSet[] _correctMap) {
-        correctMap = _correctMap;
         cardinalityMask = buildCardinalityMask(pBuilder);
+        correctMap = _correctMap;
+    }
+
+    public EvidenceSet(EvidenceSet _evidenceSet){
+        cardinalityMask = _evidenceSet.cardinalityMask.clone();
+        correctMap = _evidenceSet.correctMap.clone();
+        clueToEvidence = (HashMap<Long, Evidence>) _evidenceSet.clueToEvidence.clone();
     }
 
     public void build(HashLongLongMap clueSet) {
