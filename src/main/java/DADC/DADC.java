@@ -29,8 +29,8 @@ public class DADC {
         String path="dataset/Tax.csv";*/
 
         DADC dadc = new DADC(true,0.01,350);
-        EvidenceSet evi1 = dadc.buildEvidence(path);
-        EvidenceSet evi2 = dadc.buildEvidence(origin,add);
+        //dadc.buildEvidence(path);
+        dadc.buildEvidence(origin,add);
         //System.out.println(evi1.equals(evi2));
     }
 
@@ -50,7 +50,7 @@ public class DADC {
         shardLength = _len;
     }
 
-    public EvidenceSet buildEvidence(String dataFp){
+    public void buildEvidence(String dataFp){
 
         System.out.println("INPUT FILE: " + dataFp);
         System.out.println("ERROR THRESHOLD: " + threshold);
@@ -84,10 +84,9 @@ public class DADC {
         long t_aei = System.currentTimeMillis() - t02;
         System.out.println(" [TIME] AEI time: " + t_aei + "ms");
 
-        return evidenceSet;
     }
 
-    public EvidenceSet buildEvidence(String originFile,String newFile) throws ExecutionException, InterruptedException {
+    public void buildEvidence(String originFile,String newFile) throws ExecutionException, InterruptedException {
 
         System.out.println("INPUT ORIGIN FILE: " + originFile);
         System.out.println("INPUT NEW FILE: " + newFile);
@@ -201,6 +200,5 @@ public class DADC {
         System.out.println("  [PACS] Min DC size : " + denialConstraints1.size());
         System.out.println(" [TIME] Dynamic time: " + t_dynamic + "ms");
 
-        return evidenceSet;
     }
 }
