@@ -16,19 +16,16 @@ import de.metanome.algorithms.dcfinder.predicates.sets.PredicateSetFactory;
 public class DenialConstraintSet implements Iterable<DenialConstraint> {
 
     public Set<DenialConstraint> constraints = new HashSet<>();
-    public PredicateBuilder builder;
 
     public DenialConstraintSet() {
     }
 
     public DenialConstraintSet(PredicateBuilder builder, List<LongBitSet> covers) {
-        this.builder = builder;
         for (LongBitSet s : covers)
             constraints.add(new DenialConstraint(builder.getInverse(s)));
     }
 
     public DenialConstraintSet(PredicateBuilder builder, Set<LongBitSet> covers) {
-        this.builder = builder;
         for (LongBitSet s : covers)
             constraints.add(new DenialConstraint(builder.getInverse(s)));
     }

@@ -7,15 +7,16 @@ import ADCD.inversion.approx.ApproxEvidenceInverter;
 import ADCD.plishard.PliShard;
 import ADCD.plishard.PliShardBuilder;
 import ADCD.predicate.PredicateBuilder;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import ch.javasoft.bitset.LongBitSet;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraint;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraintSet;
 import de.metanome.algorithms.dcfinder.input.Input;
 import de.metanome.algorithms.dcfinder.input.RelationalInput;
 
-import java.io.*;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 public class DADC {
@@ -79,7 +80,7 @@ public class DADC {
         long t02 = System.currentTimeMillis();
         ApproxEvidenceInverter aei = new ApproxEvidenceInverter(predicateBuilder,true);
 
-        long target = (long)Math.ceil(1 - threshold) * (input.getRowCount())*(input.getRowCount() - 1);
+        long target = (long)Math.ceil((1 - threshold) * (input.getRowCount()) * (input.getRowCount() - 1));
         DenialConstraintSet denialConstraints = aei.buildDenialConstraints(evidenceSet, target);
         long t_aei = System.currentTimeMillis() - t02;
         System.out.println(" [TIME] AEI time: " + t_aei + "ms");
@@ -150,7 +151,7 @@ public class DADC {
 
         long t02 = System.currentTimeMillis();
         ApproxEvidenceInverter aei = new ApproxEvidenceInverter(predicateBuilder,true);
-        long target = (long)Math.ceil(1 - threshold) * originRowCount * (originRowCount - 1);
+        long target = (long)Math.ceil((1 - threshold) * originRowCount * (originRowCount - 1));
         DenialConstraintSet denialConstraints = aei.buildDenialConstraints(evidenceSetOrigin, target);
         long t_aei = System.currentTimeMillis() - t02;
         System.out.println(" [TIME] AEI time: " + t_aei + "ms");
@@ -189,16 +190,62 @@ public class DADC {
         long t03 = System.currentTimeMillis();
         //获得尚未发生改变前的dc有哪些
         ApproxDynamicEvidence approxDynamicEvidence = new ApproxDynamicEvidence(predicateBuilder,true);
-        long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount()*(input.getRowCount() - 1));
+        long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount() * (input.getRowCount() - 1));
 
         ApproxEvidenceInverter approxEvidenceInverter = new ApproxEvidenceInverter(predicateBuilder,true);
-        DenialConstraintSet dc = approxEvidenceInverter.buildDenialConstraints(evidenceSet, leastEvidenceToCover);
+        DenialConstraintSet dcSet = approxEvidenceInverter.buildDenialConstraints(evidenceSet, leastEvidenceToCover);
+
+
 
         // 获得增量后的dc
-        DenialConstraintSet denialConstraints1 = approxDynamicEvidence.build(evidenceSet, denialConstraints, leastEvidenceToCover, predicateBuilder);
-        long t_dynamic = System.currentTimeMillis() - t03;
-        System.out.println("  [PACS] Min DC size : " + denialConstraints1.size());
-        System.out.println(" [TIME] Dynamic time: " + t_dynamic + "ms");
+        DenialConstraintSet dcSet1 = approxDynamicEvidence.build(evidenceSet, denialConstraints, leastEvidenceToCover);
 
+        Map<LongBitSet, CheckedDC> checkedDCDemo1 = new HashMap<>();
+        for (DenialConstraint dc: dcSet1){
+            LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
+            checkedDCDemo1.put(dcBitSet.clone(), checkDC(dcBitSet, evidenceSet));
+            System.out.println(dcBitSet);
+        }
+
+        System.out.println();
+
+        Map<LongBitSet, CheckedDC> checkedDCDemo = new HashMap<>();
+
+        Map<LongBitSet, CheckedDC> checkedDCDemo2 = new HashMap<>();
+        for (DenialConstraint dc: dcSet){
+            LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
+            checkedDCDemo.put(dcBitSet.clone(), checkDC(dcBitSet, evidenceSet));
+            if(!checkedDCDemo1.containsKey(dcBitSet.clone())){
+                checkedDCDemo2.put(dcBitSet, checkedDCDemo.get(dcBitSet));
+                System.out.println(dcBitSet);
+            }
+        }
+
+        long t_dynamic = System.currentTimeMillis() - t03;
+        System.out.println(" [TIME] Dynamic time: " + t_dynamic + "ms");
+    }
+    public CheckedDC checkDC(LongBitSet dcLongbitset, EvidenceSet evidenceSet){
+        List<Evidence> unhitEvidence = new ArrayList<>();
+        long unhitCount = 0;
+        List<Evidence> hitEvidence = new ArrayList<>();
+        long hitCount = 0;
+        LongBitSet predicateUnChosen = new LongBitSet();
+
+        for(Evidence set: evidenceSet){
+            if(dcLongbitset.isSubSetOf(set.getBitSetPredicates())){
+                unhitCount += set.count;
+                unhitEvidence.add(set);
+                for(int i = set.getBitSetPredicates().nextSetBit(0); i >= 0; i = set.getBitSetPredicates().nextSetBit(i + 1)){
+                    if(!dcLongbitset.get(i)){
+                        predicateUnChosen.set(i);
+                    }
+                }
+            }
+            else{
+                hitCount += set.count;
+                hitEvidence.add(set);
+            }
+        }
+        return new CheckedDC(unhitEvidence, unhitCount, hitEvidence, hitCount, predicateUnChosen);
     }
 }

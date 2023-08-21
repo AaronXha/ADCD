@@ -253,7 +253,7 @@ public class ApproxDynamicEvidence {
 
     }
 
-    public DenialConstraintSet build(EvidenceSet evidenceSet, DenialConstraintSet denialConstraintSet, long target, PredicateBuilder predicateBuilder){
+    public DenialConstraintSet build(EvidenceSet evidenceSet, DenialConstraintSet denialConstraintSet, long target){
          Map<LongBitSet, CheckedDC> checkedDCDemo = new HashMap<>();
          Set<LongBitSet> minValidDCDemo = new HashSet<>();
 
@@ -278,7 +278,19 @@ public class ApproxDynamicEvidence {
             }
 
         }
-        return new DenialConstraintSet(predicateBuilder, minValidDCDemo);
+
+
+        DenialConstraintSet constraints = new DenialConstraintSet();
+        //去掉一些重复的dc
+        for (LongBitSet rawDC : minValidDCDemo)
+            constraints.add(new DenialConstraint(rawDC));
+        System.out.println("  [PACS] Total DC size: " + constraints.size());
+
+        constraints.minimize();
+
+        System.out.println("  [PACS] Min DC size : " + constraints.size());
+
+        return constraints;
     }
 
 
