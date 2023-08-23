@@ -26,6 +26,47 @@ public class ApproxDynamicEvidence {
         this.ascending = ascending;
         ArrayTreeSearch.N = nPredicates;
     }
+    /** might have problem!*/
+    public void backTrack(DenialConstraintSet extraDCSet, int count, LongBitSet canAdd, LongBitSet candidate){
+        if(canAdd.cardinality() < count)
+            return;
+        if(count == 0){
+            extraDCSet.add(new DenialConstraint(candidate.clone()));
+            return;
+        }
+        for (int i = canAdd.nextSetBit(0); i >= 0; i = canAdd.nextSetBit(i + 1)) {
+            candidate.set(i);
+            LongBitSet temp = canAdd.clone();
+            canAdd.andNot(mutexMap[i]);
+            backTrack(extraDCSet, count - 1, canAdd.clone(), candidate.clone());
+            candidate.clear(i);
+            temp.clear(i);
+            backTrack(extraDCSet, count, temp.clone(), candidate.clone());
+        }
+    }
+
+    public DenialConstraintSet initExtraDCSet(DenialConstraintSet originDCSet){
+        int predicateNumber = nPredicates;
+        LongBitSet canAdd = new LongBitSet(nPredicates);
+        for(int i = 0; i < nPredicates; i++)
+            canAdd.set(i);
+        for(DenialConstraint dc: originDCSet){
+            predicateNumber = Math.min(predicateNumber, dc.getPredicateCount());
+            LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
+            for(int j = dcBitSet.nextSetBit(0); j >= 0; j = dcBitSet.nextSetBit(j + 1)){
+                if(dcBitSet.get(j)){
+                    canAdd.clear(j);
+                }
+            }
+        }
+        DenialConstraintSet extraDCSet = new DenialConstraintSet();
+
+        backTrack(extraDCSet, predicateNumber, canAdd, new LongBitSet(nPredicates));
+
+        return extraDCSet;
+    }
+
+
 
     LongBitSet[] transformMutexMap(LongBitSet[] mutexMap,BitSetTranslator translator) {
         LongBitSet[] transMutexMap = new LongBitSet[mutexMap.length];
@@ -35,7 +76,7 @@ public class ApproxDynamicEvidence {
         return transMutexMap;
     }
 
-    private  int[] getCounts(List<Evidence> evidences){
+    private int[] getCounts(List<Evidence> evidences){
         int[] counts = new int[nPredicates];
         for(Evidence e:evidences){
             LongBitSet bitset = e.getBitSetPredicates();
@@ -221,7 +262,7 @@ public class ApproxDynamicEvidence {
         mutexMap = transformMutexMap(mutexMap,translator);
         evidences.sort((o1,o2)->Long.compare(o2.count,o1.count));
 
-        minValidDCDemo.addAll(inverseEvidenceSet(target - checkedDC.hitCount, checkedDC.predicateUnchosed, new DCCandidate(dcBitSet, checkedDC.predicateUnchosed), evidences));
+        minValidDCDemo.addAll(inverseEvidenceSet(target - checkedDC.hitCount, checkedDC.predicateUnchosed, new DCCandidate(dcBitSet.clone(), checkedDC.predicateUnchosed.clone()), evidences));
     }
 
     public void upwardTraverse(LongBitSet dcBitSet, CheckedDC checkedDC, Map<LongBitSet, CheckedDC> checkedDCDemo, Set<LongBitSet> minValidDCDemo, long target){
@@ -253,11 +294,13 @@ public class ApproxDynamicEvidence {
 
     }
 
-    public DenialConstraintSet build(EvidenceSet evidenceSet, DenialConstraintSet denialConstraintSet, long target){
+    public DenialConstraintSet build(EvidenceSet evidenceSet, DenialConstraintSet originDCSet, long target){
          Map<LongBitSet, CheckedDC> checkedDCDemo = new HashMap<>();
          Set<LongBitSet> minValidDCDemo = new HashSet<>();
 
-        for(DenialConstraint dc: denialConstraintSet){
+         DenialConstraintSet extraDCSet = initExtraDCSet(originDCSet);
+
+        for(DenialConstraint dc: extraDCSet){
             LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
 
             if(minValidDCDemo.contains(dcBitSet))
@@ -279,6 +322,27 @@ public class ApproxDynamicEvidence {
 
         }
 
+        for(DenialConstraint dc: originDCSet){
+            LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
+
+            if(minValidDCDemo.contains(dcBitSet))
+                continue;
+
+            if(!checkedDCDemo.containsKey(dcBitSet))
+                checkedDCDemo.put(dcBitSet.clone(), checkDC(dcBitSet, evidenceSet));
+
+            CheckedDC checkedDC = checkedDCDemo.get(dcBitSet);
+
+            /** downward*/
+            if(target > checkedDC.hitCount){
+                downwardTraverse(dcBitSet, checkedDC, minValidDCDemo, target);
+            }
+            /** upward*/
+            if(target <= checkedDC.hitCount){
+                upwardTraverse(dcBitSet, checkedDC, checkedDCDemo, minValidDCDemo, target);
+            }
+
+        }
 
         DenialConstraintSet constraints = new DenialConstraintSet();
         //去掉一些重复的dc
