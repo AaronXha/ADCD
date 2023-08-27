@@ -15,13 +15,13 @@ import java.util.*;
 
 public class ApproxDynamicEvidence {
     private final int nPredicates;
-    private LongBitSet[] mutexMap;   // i -> indices of predicates from the same column pair with predicate i
+    private final LongBitSet[] mutexMapOrigin;   // i -> indices of predicates from the same column pair with predicate i
     boolean ascending;//升序
     BitSetTranslator translator;    // re-order predicates by evidence coverage
 
     public ApproxDynamicEvidence(PredicateBuilder pBuilder, boolean ascending) {
         this.nPredicates = pBuilder.predicateCount();
-        this.mutexMap = pBuilder.getMutexMap();
+        this.mutexMapOrigin = pBuilder.getMutexMap();
         //前缀树
         this.ascending = ascending;
         ArrayTreeSearch.N = nPredicates;
@@ -37,7 +37,7 @@ public class ApproxDynamicEvidence {
         for (int i = canAdd.nextSetBit(0); i >= 0; i = canAdd.nextSetBit(i + 1)) {
             candidate.set(i);
             LongBitSet temp = canAdd.clone();
-            canAdd.andNot(mutexMap[i]);
+            canAdd.andNot(mutexMapOrigin[i]);
             backTrack(extraDCSet, count - 1, canAdd.clone(), candidate.clone());
             candidate.clear(i);
             temp.clear(i);
@@ -61,14 +61,14 @@ public class ApproxDynamicEvidence {
         }
         DenialConstraintSet extraDCSet = new DenialConstraintSet();
 
-        backTrack(extraDCSet, predicateNumber, canAdd, new LongBitSet(nPredicates));
+        backTrack(extraDCSet, predicateNumber, canAdd.clone(), new LongBitSet(nPredicates));
 
         return extraDCSet;
     }
 
 
 
-    LongBitSet[] transformMutexMap(LongBitSet[] mutexMap,BitSetTranslator translator) {
+    LongBitSet[] transformMutexMap(LongBitSet[] mutexMap) {
         LongBitSet[] transMutexMap = new LongBitSet[mutexMap.length];
         for (int i = 0; i < mutexMap.length; i++) {
             transMutexMap[translator.transform(i)] = translator.transform(mutexMap[i]);
@@ -150,7 +150,7 @@ public class ApproxDynamicEvidence {
         return false;
     }
 
-    void hit(SearchNode nd, List<Evidence> evidences, ArrayTreeSearch approxCovers) {
+    void hit(SearchNode nd, List<Evidence> evidences, ArrayTreeSearch approxCovers, LongBitSet[] mutexMap) {
         //如果候选predicates是evi的subset 那么就不可能覆盖了  直接结束。
         if (nd.e >= evidences.size() || nd.addablePredicates.isSubSetOf(evidences.get(nd.e).bitset))
             return;
@@ -200,7 +200,7 @@ public class ApproxDynamicEvidence {
             Collection<DCCandidate> unhitEviDCs = dcCandidates.getAndRemoveGeneralizations(evi);
 
             // hit evidences[e] later
-            SearchNode nd = new SearchNode(e, addablePredicates.clone(), dcCandidates, unhitEviDCs, target,status+e);
+            SearchNode nd = new SearchNode(e, addablePredicates.clone(), dcCandidates, unhitEviDCs, target,status + e);
             nodes.push(nd);
 
             // unhit evidences[e]  所有的dc候选者都已经覆盖了当前的这个evi  那么就不存在不覆盖这个evi的可能了。
@@ -233,7 +233,7 @@ public class ApproxDynamicEvidence {
         }
     }
 
-    public List<LongBitSet> inverseEvidenceSet(long target, LongBitSet predicateUnChosen, DCCandidate dcCandidate, List<Evidence> evidences){
+    public List<LongBitSet> inverseEvidenceSet(long target, LongBitSet predicateUnChosen, DCCandidate dcCandidate, List<Evidence> evidences, LongBitSet[] mutexMap){
         ArrayTreeSearch approxCovers = new ArrayTreeSearch();
         Stack<SearchNode> stack = new Stack<>();
         ArrayTreeSearch dcCandidates = new ArrayTreeSearch();
@@ -244,7 +244,7 @@ public class ApproxDynamicEvidence {
             //遍历完所有的evidence或者没有可以加入的predicate 那么就结束了。
             if (nd.e >= evidences.size() || nd.addablePredicates.isEmpty())
                 continue;
-            hit(nd, evidences, approxCovers);    // hit evidences[e]
+            hit(nd, evidences, approxCovers, mutexMap);    // hit evidences[e]
             if (nd.target > 0)
                 walk(nd.e + 1, nd.addablePredicates, nd.dcCandidates, nd.target, stack, nd.H, evidences, approxCovers);
         }
@@ -254,15 +254,17 @@ public class ApproxDynamicEvidence {
     }
 
     public void downwardTraverse(LongBitSet dcBitSet, CheckedDC checkedDC, Set<LongBitSet> minValidDCDemo, long target){
-        List<Evidence> evidences = checkedDC.unhitEvidences;
-        int[] counts = getCounts(checkedDC.unhitEvidences);
+        List<Evidence> evidences = new ArrayList<>(checkedDC.unhitEvidences);
+        int[] counts = getCounts(evidences);
 
         ArrayIndexComparator comparator = new ArrayIndexComparator(counts, ascending);
-        BitSetTranslator translator = new BitSetTranslator(comparator.createIndexArray());
-        mutexMap = transformMutexMap(mutexMap,translator);
+        translator = new BitSetTranslator(comparator.createIndexArray());
+        LongBitSet[] mutexMapNew = transformMutexMap(mutexMapOrigin); // re-order predicates by evidence coverage
         evidences.sort((o1,o2)->Long.compare(o2.count,o1.count));
 
-        minValidDCDemo.addAll(inverseEvidenceSet(target - checkedDC.hitCount, checkedDC.predicateUnchosed, new DCCandidate(dcBitSet.clone(), checkedDC.predicateUnchosed.clone()), evidences));
+        List<LongBitSet> res = inverseEvidenceSet(target - checkedDC.hitCount, checkedDC.predicateUnchosed, new DCCandidate(dcBitSet, checkedDC.predicateUnchosed.clone()), evidences, mutexMapNew);
+
+        minValidDCDemo.addAll(res);
     }
 
     public void upwardTraverse(LongBitSet dcBitSet, CheckedDC checkedDC, Map<LongBitSet, CheckedDC> checkedDCDemo, Set<LongBitSet> minValidDCDemo, long target){
