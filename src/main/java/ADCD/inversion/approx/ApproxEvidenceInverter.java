@@ -166,7 +166,7 @@ public class ApproxEvidenceInverter {
                 for (int i = canAdd.nextSetBit(0); i >= 0; i = canAdd.nextSetBit(i + 1)) {
                     DCCandidate validDC = invalidDC.clone();
                     validDC.bitSet.set(i);
-                    //一个谓词组只能选择其他一个 如果我选了其中一个，那么我的候选predicat需要把这个谓词组给排除。
+                    //一个谓词组只能选择其他一个 如果我选了其中一个，那么我的候选predicate需要把这个谓词组给排除。
                     validDC.cand.andNot(mutexMap[i]);
                     if (!dcCandidates.containsSubset(validDC) && !approxCovers.containsSubset(validDC)) {
                         if (!validDC.cand.isEmpty())

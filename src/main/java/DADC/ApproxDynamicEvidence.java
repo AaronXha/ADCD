@@ -17,7 +17,6 @@ public class ApproxDynamicEvidence {
     private final int nPredicates;
     private final LongBitSet[] mutexMapOrigin;   // i -> indices of predicates from the same column pair with predicate i
     boolean ascending;//升序
-    BitSetTranslator translator;    // re-order predicates by evidence coverage
 
     public ApproxDynamicEvidence(PredicateBuilder pBuilder, boolean ascending) {
         this.nPredicates = pBuilder.predicateCount();
@@ -68,7 +67,7 @@ public class ApproxDynamicEvidence {
 
 
 
-    LongBitSet[] transformMutexMap(LongBitSet[] mutexMap) {
+    LongBitSet[] transformMutexMap(LongBitSet[] mutexMap, BitSetTranslator translator) {
         LongBitSet[] transMutexMap = new LongBitSet[mutexMap.length];
         for (int i = 0; i < mutexMap.length; i++) {
             transMutexMap[translator.transform(i)] = translator.transform(mutexMap[i]);
@@ -179,7 +178,7 @@ public class ApproxDynamicEvidence {
                 for (int i = canAdd.nextSetBit(0); i >= 0; i = canAdd.nextSetBit(i + 1)) {
                     DCCandidate validDC = invalidDC.clone();
                     validDC.bitSet.set(i);
-                    //一个谓词组只能选择其他一个 如果我选了其中一个，那么我的候选predicat需要把这个谓词组给排除。
+                    //一个谓词组只能选择其他一个 如果我选了其中一个，那么我的候选predicate需要把这个谓词组给排除。
                     validDC.cand.andNot(mutexMap[i]);
                     if (!dcCandidates.containsSubset(validDC) && !approxCovers.containsSubset(validDC)) {
                         if (!validDC.cand.isEmpty())
@@ -233,11 +232,12 @@ public class ApproxDynamicEvidence {
         }
     }
 
-    public List<LongBitSet> inverseEvidenceSet(long target, LongBitSet predicateUnChosen, DCCandidate dcCandidate, List<Evidence> evidences, LongBitSet[] mutexMap){
+    public List<LongBitSet> inverseEvidenceSet(long target, LongBitSet predicateUnChosen, DCCandidate dcCandidate, List<Evidence> evidences, LongBitSet[] mutexMap, BitSetTranslator translator){
         ArrayTreeSearch approxCovers = new ArrayTreeSearch();
         Stack<SearchNode> stack = new Stack<>();
         ArrayTreeSearch dcCandidates = new ArrayTreeSearch();
         dcCandidates.add(dcCandidate);
+        //第一个参数代表 第几个evidence  第二个代表能选那些谓词 第三个是有哪些dc的候选者 第四个是还要覆盖多少  哪些evid还没有覆盖
         walk(0, predicateUnChosen, dcCandidates, target, stack,"", evidences, approxCovers);
         while (!stack.empty()){
             SearchNode nd = stack.pop();
@@ -258,11 +258,11 @@ public class ApproxDynamicEvidence {
         int[] counts = getCounts(evidences);
 
         ArrayIndexComparator comparator = new ArrayIndexComparator(counts, ascending);
-        translator = new BitSetTranslator(comparator.createIndexArray());
-        LongBitSet[] mutexMapNew = transformMutexMap(mutexMapOrigin); // re-order predicates by evidence coverage
+        BitSetTranslator translator = new BitSetTranslator(comparator.createIndexArray());
+        LongBitSet[] mutexMapNew = transformMutexMap(mutexMapOrigin, translator); // re-order predicates by evidence coverage
         evidences.sort((o1,o2)->Long.compare(o2.count,o1.count));
 
-        List<LongBitSet> res = inverseEvidenceSet(target - checkedDC.hitCount, checkedDC.predicateUnchosed, new DCCandidate(dcBitSet, checkedDC.predicateUnchosed.clone()), evidences, mutexMapNew);
+        List<LongBitSet> res = inverseEvidenceSet(target - checkedDC.hitCount, checkedDC.predicateUnchosed, new DCCandidate(dcBitSet, checkedDC.predicateUnchosed.clone()), evidences, mutexMapNew, translator);
 
         minValidDCDemo.addAll(res);
     }
