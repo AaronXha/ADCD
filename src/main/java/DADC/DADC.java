@@ -192,8 +192,8 @@ public class DADC {
         ApproxDynamicEvidence approxDynamicEvidence = new ApproxDynamicEvidence(predicateBuilder,true);
         long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount() * (input.getRowCount() - 1));
 
-/*        ApproxEvidenceInverter approxEvidenceInverter = new ApproxEvidenceInverter(predicateBuilder,true);
-        DenialConstraintSet fullDCSet = approxEvidenceInverter.buildDenialConstraints(evidenceSet, leastEvidenceToCover);*/
+        ApproxEvidenceInverter approxEvidenceInverter = new ApproxEvidenceInverter(predicateBuilder,true);
+        DenialConstraintSet fullDCSet = approxEvidenceInverter.buildDenialConstraints(evidenceSet, leastEvidenceToCover);
 
 
 
@@ -201,5 +201,15 @@ public class DADC {
         DenialConstraintSet dcSet = approxDynamicEvidence.build(evidenceSet, originDCSet, leastEvidenceToCover);
         long t_dynamic = System.currentTimeMillis() - t03;
         System.out.println(" [TIME] Dynamic time: " + t_dynamic + "ms");
+
+/*        for(DenialConstraint dc: dcSet){
+            if(!fullDCSet.contains(dc))
+                System.out.println(dc.getPredicateSet().getBitset());
+        }
+        System.out.println();
+        for(DenialConstraint dc: fullDCSet){
+            if(!dcSet.contains(dc))
+                System.out.println(dc.getPredicateSet().getBitset());
+        }*/
     }
 }

@@ -223,49 +223,6 @@ public class ApproxEvidenceInverter {
         }
         return counts;
     }
-    public DenialConstraintSet buildDynamicDc(EvidenceSet evidenceSet,DenialConstraintSet denialConstraintSet,long target){
-        DenialConstraintSet invalidDC = new DenialConstraintSet();
-        for(DenialConstraint dc:denialConstraintSet){
-            if(!check2(dc,evidenceSet,target).flag)invalidDC.add(dc);
-        }
-        return invalidDC;
-    }
-
-    public Pair check2(DenialConstraint dc, EvidenceSet evidenceSet, long target){
-        LongBitSet dcLongbitset = dc.getPredicateSet().getBitset();
-        List<Evidence> unhitEvidence = new ArrayList<>();
-        LongBitSet predicateUnChoosed = new LongBitSet();
-        int count = 0;
-        int choosenumber = 0;
-        for(Evidence set:evidenceSet){
-            if(dcLongbitset.isSubSetOf(set.getBitSetPredicates())){
-                count+=set.count;
-                unhitEvidence.add(set);
-                for(int i=set.getBitSetPredicates().nextSetBit(0);i>=0;i = set.getBitSetPredicates().nextSetBit(i+1)){
-                    if(!dcLongbitset.get(i)){
-                        if(!predicateUnChoosed.get(i))choosenumber++;
-                        predicateUnChoosed.set(i);
-
-                    }
-                }
-            }
-        }
-       // System.out.println(choosenumber);
-        Pair res = new Pair(unhitEvidence,count<=target,target-count,predicateUnChoosed);
-        return res;
-    }
 
 
-    class Pair{
-        List<Evidence> unhitEvidenceSet;
-        boolean flag;
-        long needEvidence;
-        LongBitSet predicateUnchosed;
-        public Pair(List<Evidence> unhitEvidenceSet,boolean flag,long needEvidence,LongBitSet predicateUnchosed){
-            this.predicateUnchosed = predicateUnchosed;
-            this.unhitEvidenceSet = unhitEvidenceSet;
-            this.flag = flag;
-            this.needEvidence = needEvidence;
-        }
-    }
 }
