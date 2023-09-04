@@ -2,8 +2,6 @@ package DADC;
 
 import ADCD.evidence.evidenceSet.Evidence;
 import ADCD.evidence.evidenceSet.EvidenceSet;
-import ADCD.inversion.ArrayIndexComparator;
-import ADCD.inversion.BitSetTranslator;
 import ADCD.inversion.approx.ArrayTreeSearch;
 import ADCD.inversion.approx.DCCandidate;
 import ADCD.inversion.approx.SearchNode;
@@ -235,6 +233,20 @@ public class ApproxDynamicEvidence {
         return rawDC;
     }
 
+    public void addMinimalDCDemo(LongBitSet dcBitSet, Set<LongBitSet> minimalDCDemo){
+        boolean canAdd = true;
+        for (LongBitSet e: minimalDCDemo){
+            if(e.isSubSetOf(dcBitSet) && !dcBitSet.isSubSetOf(e)){
+                canAdd = false;
+                break;
+            }
+        }
+        if(!canAdd)
+            return;
+        minimalDCDemo.removeIf(dcBitSet::isSubSetOf);
+        minimalDCDemo.add(dcBitSet);
+    }
+
     public void downwardTraverse(LongBitSet dcBitSet, CheckedDC checkedDC, Set<LongBitSet> minValidDCDemo, long target){
         List<Evidence> evidences = new ArrayList<>(checkedDC.unhitEvidences);
 
@@ -242,7 +254,8 @@ public class ApproxDynamicEvidence {
 
         List<LongBitSet> res = inverseEvidenceSet(target - checkedDC.hitCount, checkedDC.predicateUnchosed, new DCCandidate(dcBitSet, checkedDC.predicateUnchosed.clone()), evidences);
 
-        minValidDCDemo.addAll(res);
+        for(LongBitSet e: res)
+            addMinimalDCDemo(e, minValidDCDemo);
     }
 
     public void upwardTraverse(LongBitSet dcBitSet, CheckedDC checkedDC, Map<LongBitSet, CheckedDC> checkedDCDemo, Set<LongBitSet> minValidDCDemo, long target){
@@ -268,17 +281,18 @@ public class ApproxDynamicEvidence {
             /*****/
             bitSetTemp.set(i, true);
         }
-        if(isMinimal && !minValidDCDemo.contains(bitSetTemp)){
-            minValidDCDemo.add(bitSetTemp.clone());
-        }
-
+        if(isMinimal)
+            addMinimalDCDemo(bitSetTemp, minValidDCDemo);
     }
 
     public DenialConstraintSet build(EvidenceSet evidenceSet, DenialConstraintSet originDCSet, long target){
-         Map<LongBitSet, CheckedDC> checkedDCDemo = new HashMap<>();
-         Set<LongBitSet> minValidDCDemo = new HashSet<>();
+        Map<LongBitSet, CheckedDC> checkedDCDemo = new HashMap<>();
+        Set<LongBitSet> minValidDCDemo = new HashSet<>();
 
-         DenialConstraintSet extraDCSet = initExtraDCSet(originDCSet);
+        DenialConstraintSet extraDCSet = initExtraDCSet(originDCSet);
+
+        long downTime = 0;
+        long upTime = 0;
 
         for(DenialConstraint dc: extraDCSet){
             LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
@@ -293,14 +307,19 @@ public class ApproxDynamicEvidence {
 
             /** downward*/
             if(target > checkedDC.hitCount){
+                long t0 = System.currentTimeMillis();
                 downwardTraverse(dcBitSet, checkedDC, minValidDCDemo, target);
+                downTime += System.currentTimeMillis() - t0;
             }
             /** upward*/
             if(target <= checkedDC.hitCount){
+                long t1 = System.currentTimeMillis();
                 upwardTraverse(dcBitSet, checkedDC, checkedDCDemo, minValidDCDemo, target);
+                upTime += System.currentTimeMillis() - t1;
             }
 
         }
+
 
         for(DenialConstraint dc: originDCSet){
             LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
@@ -315,11 +334,15 @@ public class ApproxDynamicEvidence {
 
             /** downward*/
             if(target > checkedDC.hitCount){
+                long t2 = System.currentTimeMillis();
                 downwardTraverse(dcBitSet, checkedDC, minValidDCDemo, target);
+                downTime += System.currentTimeMillis() - t2;
             }
             /** upward*/
             if(target <= checkedDC.hitCount){
+                long t3 = System.currentTimeMillis();
                 upwardTraverse(dcBitSet, checkedDC, checkedDCDemo, minValidDCDemo, target);
+                upTime += System.currentTimeMillis() -t3;
             }
 
         }
@@ -334,18 +357,6 @@ public class ApproxDynamicEvidence {
 
         System.out.println("  [PACS] Min DC size : " + constraints.size());
 
-
-/*        Map<LongBitSet, CheckedDC> checkedDemo = new HashMap<>();
-        for (DenialConstraint dc: constraints) {
-            LongBitSet dcBitSet = dc.getPredicateSet().getLongBitSet();
-            System.out.println(dc.getPredicateSet().getBitset());
-            if(checkedDCDemo.containsKey(dcBitSet)){
-                checkedDemo.put(dcBitSet, checkedDCDemo.get(dcBitSet));
-            }
-            if(!checkedDCDemo.containsKey(dcBitSet)){
-                checkedDemo.put(dcBitSet, checkDC(dcBitSet, evidenceSet));
-            }
-        }*/
         return constraints;
     }
 

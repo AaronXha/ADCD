@@ -21,18 +21,17 @@ import java.util.concurrent.ExecutionException;
 
 public class DADC {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-        String origin = "dataset/airport_10000_red.csv";
+/*        String origin = "dataset/airport_10000_red.csv";
         String add = "dataset/airport_10000.csv";
-        String path ="dataset/airport.csv";
+        String path ="dataset/airport.csv";*/
 
-/*        String origin = "dataset/test_origin.csv";
+        String origin = "dataset/test_origin.csv";
         String add = "dataset/test_new.csv";
-        String path="dataset/Tax.csv";*/
+        String path="dataset/Tax.csv";
 
         DADC dadc = new DADC(true,0.01,350);
         //dadc.buildEvidence(path);
         dadc.buildEvidence(origin,add);
-        //System.out.println(evi1.equals(evi2));
     }
 
     private final boolean noCrossColumn;
@@ -192,24 +191,57 @@ public class DADC {
         ApproxDynamicEvidence approxDynamicEvidence = new ApproxDynamicEvidence(predicateBuilder,true);
         long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount() * (input.getRowCount() - 1));
 
-        ApproxEvidenceInverter approxEvidenceInverter = new ApproxEvidenceInverter(predicateBuilder,true);
-        DenialConstraintSet fullDCSet = approxEvidenceInverter.buildDenialConstraints(evidenceSet, leastEvidenceToCover);
-
-
+/*        ApproxEvidenceInverter approxEvidenceInverter = new ApproxEvidenceInverter(predicateBuilder,true);
+        DenialConstraintSet fullDCSet = approxEvidenceInverter.buildDenialConstraints(evidenceSet, leastEvidenceToCover);*/
 
         // 获得增量后的dc
         DenialConstraintSet dcSet = approxDynamicEvidence.build(evidenceSet, originDCSet, leastEvidenceToCover);
         long t_dynamic = System.currentTimeMillis() - t03;
         System.out.println(" [TIME] Dynamic time: " + t_dynamic + "ms");
 
-/*        for(DenialConstraint dc: dcSet){
-            if(!fullDCSet.contains(dc))
-                System.out.println(dc.getPredicateSet().getBitset());
+/*        Map<LongBitSet, CheckedDC> checkedDemo1 = new HashMap<>();
+        for(DenialConstraint dc: dcSet){
+            if(!fullDCSet.contains(dc)) {
+                LongBitSet dcBitSet = dc.getPredicateSet().getBitset();
+                checkedDemo1.put(dcBitSet, checkDC(dcBitSet, evidenceSet));
+                System.out.println(dcBitSet);
+            }
         }
         System.out.println();
+        Map<LongBitSet, CheckedDC> checkedDemo2 = new HashMap<>();
         for(DenialConstraint dc: fullDCSet){
-            if(!dcSet.contains(dc))
+            if(!dcSet.contains(dc)){
+                LongBitSet dcBitSet = dc.getPredicateSet().getBitset();
+                checkedDemo2.put(dcBitSet, checkDC(dcBitSet, evidenceSet));
                 System.out.println(dc.getPredicateSet().getBitset());
-        }*/
+            }
+        }
+        System.out.println();*/
+
+    }
+
+    public CheckedDC checkDC(LongBitSet dcLongbitset, EvidenceSet evidenceSet){
+        List<Evidence> unhitEvidence = new ArrayList<>();
+        long unhitCount = 0;
+        List<Evidence> hitEvidence = new ArrayList<>();
+        long hitCount = 0;
+        LongBitSet predicateUnChosen = new LongBitSet();
+
+        for(Evidence set: evidenceSet){
+            if(dcLongbitset.isSubSetOf(set.getBitSetPredicates())){
+                unhitCount += set.count;
+                unhitEvidence.add(set);
+                for(int i = set.getBitSetPredicates().nextSetBit(0); i >= 0; i = set.getBitSetPredicates().nextSetBit(i + 1)){
+                    if(!dcLongbitset.get(i)){
+                        predicateUnChosen.set(i);
+                    }
+                }
+            }
+            else{
+                hitCount += set.count;
+                hitEvidence.add(set);
+            }
+        }
+        return new CheckedDC(unhitEvidence, unhitCount, hitEvidence, hitCount, predicateUnChosen);
     }
 }

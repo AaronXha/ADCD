@@ -65,7 +65,10 @@ public class Main implements Runnable {
         System.out.println("PARALLELISM: " + ForkJoinPool.commonPool().getParallelism());
 
         ADCD adcd = new ADCD(singleColumn, threshold, shardLength, mode);
-        DenialConstraintSet dcs = adcd.buildApproxDCs(fp == null ? DataFp.DATA_FP[dataset] : fp, rowLimit);
+        DenialConstraintSet dcs = adcd.buildApproxDCs(fp == null ? DataFp.DATA_FP[1] : fp, rowLimit);
+        for(DenialConstraint dc:dcs) {
+            System.out.println(dc);
+        }
 
     }
     public void writeDC(DenialConstraintSet dcs) throws IOException {
