@@ -22,6 +22,8 @@ public class EvidenceSet implements Iterable<Evidence> {
     public HashMap<Long, Evidence> clueToEvidence = new HashMap<>(); // TODO: compare HashMap and HashLongObjMap
     //private Map<Long, Evidence> clueToEvidence = HashLongObjMaps.newMutableMap();
 
+    public EvidenceSet(){}
+
     public EvidenceSet(PredicateBuilder pBuilder, LongBitSet[] _correctMap) {
         cardinalityMask = buildCardinalityMask(pBuilder);
         correctMap = _correctMap;
@@ -30,7 +32,7 @@ public class EvidenceSet implements Iterable<Evidence> {
     public EvidenceSet(EvidenceSet _evidenceSet){
         cardinalityMask = _evidenceSet.cardinalityMask.clone();
         correctMap = _evidenceSet.correctMap.clone();
-        clueToEvidence = (HashMap<Long, Evidence>) _evidenceSet.clueToEvidence.clone();
+        clueToEvidence.putAll(_evidenceSet.clueToEvidence);
     }
 
     public void build(HashLongLongMap clueSet) {

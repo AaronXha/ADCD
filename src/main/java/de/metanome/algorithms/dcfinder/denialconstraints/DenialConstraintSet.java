@@ -17,6 +17,8 @@ public class DenialConstraintSet implements Iterable<DenialConstraint> {
 
     public Set<DenialConstraint> constraints = new HashSet<>();
 
+    public Set<LongBitSet> bitSetSet = new HashSet<>();
+
     public DenialConstraintSet() {
     }
 
@@ -36,6 +38,13 @@ public class DenialConstraintSet implements Iterable<DenialConstraint> {
 
     public void add(DenialConstraint dc) {
         constraints.add(dc);
+    }
+
+    public Set<LongBitSet> getBitSetSet(){
+        for (DenialConstraint constraint : constraints) {
+            bitSetSet.add(constraint.getPredicateSet().getLongBitSet());
+        }
+        return bitSetSet;
     }
 
     @Override

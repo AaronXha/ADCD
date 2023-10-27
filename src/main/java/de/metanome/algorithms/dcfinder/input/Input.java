@@ -189,7 +189,7 @@ public class Input {
     }
 
 
-    public int getRowCount() {
+    public long getRowCount() {
         return rowCount;
     }
 

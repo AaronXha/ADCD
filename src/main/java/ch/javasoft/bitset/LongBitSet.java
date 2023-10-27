@@ -199,6 +199,7 @@ public class LongBitSet implements IBitSet, Serializable {
         mUnits[unit] ^= (mUnits[unit] & mask);
     }
 
+
     public boolean get(int bit) {
         int unit = bit / BITS_PER_UNIT;
         return unit < mUnits.length && 0L != (mUnits[unit] & (1L << (bit % BITS_PER_UNIT)));

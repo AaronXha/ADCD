@@ -12,6 +12,10 @@ public class CheckedDC {
     long hitCount;
     LongBitSet predicateUnchosed;
 
+    public CheckedDC(long unhitCount, long hitCount){
+        this.unhitCount = unhitCount;
+        this.hitCount = hitCount;
+    }
 
     public CheckedDC(List<Evidence> unhitEvidences,long unhitCount, List<Evidence> hitEvidences, long hitCount, LongBitSet predicateUnchosed) {
         this.unhitEvidences = unhitEvidences;
