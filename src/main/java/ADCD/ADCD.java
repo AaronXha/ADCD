@@ -8,7 +8,7 @@ import ADCD.predicate.PredicateBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraintSet;
-import de.metanome.algorithms.dcfinder.input.InputOld;
+import de.metanome.algorithms.dcfinder.input.Input;
 import de.metanome.algorithms.dcfinder.input.RelationalInput;
 import ADCD.plishard.PliShard;
 import ADCD.plishard.PliShardBuilder;
@@ -32,7 +32,7 @@ public class ADCD {
     private final int mode;
 
     private String dataFp;
-    private InputOld input;
+    private Input input;
     private PredicateBuilder predicateBuilder;
     private PliShardBuilder pliShardBuilder;
     private EvidenceSetBuilder evidenceSetBuilder;
@@ -74,7 +74,7 @@ public class ADCD {
 
         // load input data, build predicate space
         long t00 = System.currentTimeMillis();
-        input = new InputOld(new RelationalInput(dataFp), sizeLimit);
+        input = new Input(new RelationalInput(dataFp), sizeLimit);
         System.out.println(input.getRowCount());
         predicateBuilder.buildPredicateSpace(input);
         System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());

@@ -9,7 +9,7 @@ import java.util.Set;
 import ch.javasoft.bitset.LongBitSet;
 import de.metanome.algorithms.dcfinder.helpers.IndexProvider;
 import de.metanome.algorithms.dcfinder.predicates.ColumnPair;
-import de.metanome.algorithms.dcfinder.input.InputOld;
+import de.metanome.algorithms.dcfinder.input.Input;
 import de.metanome.algorithms.dcfinder.input.ParsedColumn;
 import de.metanome.algorithms.dcfinder.predicates.Operator;
 import de.metanome.algorithms.dcfinder.predicates.Predicate;
@@ -49,7 +49,7 @@ public class PredicateBuilder {
         predicateIdProvider = new IndexProvider<>();
     }
 
-    public void buildPredicateSpace(InputOld input) {
+    public void buildPredicateSpace(Input input) {
         List<ColumnPair> columnPairs = constructColumnPairs(input);
         List<Predicate> set = new ArrayList<>();
 
@@ -164,7 +164,7 @@ public class PredicateBuilder {
     }
 
     //返回可以构成谓词空间的列对
-    private ArrayList<ColumnPair> constructColumnPairs(InputOld input) {
+    private ArrayList<ColumnPair> constructColumnPairs(Input input) {
         ArrayList<ColumnPair> pairs = new ArrayList<>();
         for (int i = 0; i < input.getColumns().length; ++i) {
             ParsedColumn<?> c1 = input.getColumns()[i];

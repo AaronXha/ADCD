@@ -10,7 +10,7 @@ import ADCD.predicate.PredicateBuilder;
 import ch.javasoft.bitset.LongBitSet;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraint;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraintSet;
-import de.metanome.algorithms.dcfinder.input.InputOld;
+import de.metanome.algorithms.dcfinder.input.Input;
 import de.metanome.algorithms.dcfinder.input.RelationalInput;
 
 import java.util.*;
@@ -20,7 +20,7 @@ public class DADC {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         String origin = "dataset/test_origin.csv";
         String add = "dataset/test_new.csv";
-        String path ="dataset/test.csv";
+        String path ="dataset/airport.csv";
 
 /*        String origin = "dataset/atom_origin.csv";
         String add = "dataset/atom_new.csv";
@@ -62,7 +62,7 @@ public class DADC {
         RelationalInput relationalInputOrigin = new RelationalInput(originFile);
         RelationalInput relationalInputNew = new RelationalInput(newFile);
 
-        InputOld input = new InputOld(relationalInputOrigin, relationalInputNew);
+        Input input = new Input(relationalInputOrigin, relationalInputNew);
         PredicateBuilder predicateBuilder = new PredicateBuilder(noCrossColumn, minimumSharedValue, comparableThreshold);
         predicateBuilder.buildPredicateSpace(input);
         System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());
@@ -270,7 +270,7 @@ public class DADC {
 
         // load input data, build predicate space
         long t00 = System.currentTimeMillis();
-        InputOld input = new InputOld(new RelationalInput(dataFp), -1);
+        Input input = new Input(new RelationalInput(dataFp), -1);
         PredicateBuilder predicateBuilder = new PredicateBuilder(noCrossColumn, minimumSharedValue, comparableThreshold);
         predicateBuilder.buildPredicateSpace(input);
         System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());
@@ -306,7 +306,7 @@ public class DADC {
 
         // load input data, build predicate space
         long t00 = System.currentTimeMillis();
-        InputOld input = new InputOld(new RelationalInput(dataFp), -1);
+        Input input = new Input(new RelationalInput(dataFp), -1);
         PredicateBuilder predicateBuilder = new PredicateBuilder(noCrossColumn, minimumSharedValue, comparableThreshold);
         predicateBuilder.buildPredicateSpace(input);
         System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());
@@ -501,7 +501,7 @@ public class DADC {
 
         // load input data, build predicate space
         long t00 = System.currentTimeMillis();
-        InputOld input = new InputOld(new RelationalInput(dataFp), -1);
+        Input input = new Input(new RelationalInput(dataFp), -1);
         PredicateBuilder predicateBuilder = new PredicateBuilder(noCrossColumn, minimumSharedValue, comparableThreshold);
         predicateBuilder.buildPredicateSpace(input);
         System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());
