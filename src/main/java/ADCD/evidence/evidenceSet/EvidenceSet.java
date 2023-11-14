@@ -54,6 +54,12 @@ public class EvidenceSet implements Iterable<Evidence> {
         return clueToEvidence.values().stream().mapToLong(e -> e.count).reduce(0L, Long::sum);
     }
 
+    public List<Evidence> getEvidenceList(){
+        List<Evidence> evidenceList = new ArrayList<>(clueToEvidence.values());
+        evidenceList.sort((o1, o2) -> Long.compare(o2.count, o1.count));
+        return evidenceList;
+    }
+
     public Collection<Evidence> getEvidences() {
         return clueToEvidence.values();
     }

@@ -62,9 +62,8 @@ public class ApproxEvidenceInverter {
             constraints.add(new DenialConstraint(rawDC));
         System.out.println("  [PACS] Total DC size: " + constraints.size());
 
-        constraints.minimize();
-
-        System.out.println("  [PACS] Min DC size : " + constraints.size());
+        //constraints.minimize();
+        //System.out.println("  [PACS] Min DC size : " + constraints.size());
 
         return constraints;
     }

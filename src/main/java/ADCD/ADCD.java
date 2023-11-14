@@ -1,27 +1,19 @@
 package ADCD;
 
 import ADCD.approxcover.ApproxDCBuilder;
-import DADC.ApproxDynamicEvidence;
-import aei.*;
-import graph.*;
 import ADCD.evidence.EvidenceSetBuilder;
-import ADCD.evidence.evidenceSet.Evidence;
 import ADCD.evidence.evidenceSet.EvidenceSet;
 import ADCD.inversion.approx.ApproxEvidenceInverter;
 import ADCD.predicate.PredicateBuilder;
-import ch.javasoft.bitset.LongBitSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraint;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraintSet;
-import de.metanome.algorithms.dcfinder.input.Input;
+import de.metanome.algorithms.dcfinder.input.InputOld;
 import de.metanome.algorithms.dcfinder.input.RelationalInput;
 import ADCD.plishard.PliShard;
 import ADCD.plishard.PliShardBuilder;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ADCD {
 
@@ -40,7 +32,7 @@ public class ADCD {
     private final int mode;
 
     private String dataFp;
-    private Input input;
+    private InputOld input;
     private PredicateBuilder predicateBuilder;
     private PliShardBuilder pliShardBuilder;
     private EvidenceSetBuilder evidenceSetBuilder;
@@ -82,7 +74,7 @@ public class ADCD {
 
         // load input data, build predicate space
         long t00 = System.currentTimeMillis();
-        input = new Input(new RelationalInput(dataFp), sizeLimit);
+        input = new InputOld(new RelationalInput(dataFp), sizeLimit);
         System.out.println(input.getRowCount());
         predicateBuilder.buildPredicateSpace(input);
         System.out.println(" [ADCD] Predicate space size: " + predicateBuilder.predicateCount());

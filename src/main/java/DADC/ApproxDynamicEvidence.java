@@ -12,8 +12,7 @@ public class ApproxDynamicEvidence {
     private final int nPredicates;
     public LongBitSet[] mutexMap;
     public LongBitSet fullMask;
-    public EvidenceSet evidenceSetAll;
-
+    public List<Evidence> evidenceList;
     public long limit;
     public long target;
     public Map<LongBitSet, CheckedDC> checkedDCDemo;
@@ -21,46 +20,23 @@ public class ApproxDynamicEvidence {
     public Set<LongBitSet> checkedValidDemo;
     public Set<LongBitSet> checkedInvalidDemo;
     public Set<LongBitSet> downwardVisitedDemo;
-    public long checkTime = 0;
-
-    public long validateTime = 0;
+    public Set<LongBitSet> commonDCDemo;
 
     public ApproxDynamicEvidence(PredicateBuilder pBuilder) {
         this.nPredicates = pBuilder.predicateCount();
-        // i -> indices of predicates from the same column pair with predicate i
-        this.mutexMap = pBuilder.getMutexMap();
-        fullMask = new LongBitSet(nPredicates);
+        this.mutexMap = pBuilder.getMutexMap();// i -> indices of predicates from the same column pair with predicate i
+        this.fullMask = new LongBitSet(nPredicates);
         for(int i = 0; i < nPredicates; i++)
             fullMask.set(i);
+        checkedDCDemo = new HashMap<>();
+        minValidDCDemo = new HashSet<>();
+        checkedValidDemo = new HashSet<>();
+        checkedInvalidDemo = new HashSet<>();
+        downwardVisitedDemo = new HashSet<>();
+        commonDCDemo = new HashSet<>();
     }
 
-    public CheckedDC checkDC(LongBitSet dcBitSet){
-        long unhitCount = 0;
-        long hitCount = 0;
-        for(Evidence set: evidenceSetAll) {
-            if (dcBitSet.isSubSetOf(set.getBitSetPredicates()))
-                unhitCount += set.count;
-            else
-                hitCount += set.count;
-        }
-        return new CheckedDC(unhitCount, hitCount);
-    }
-
-    public CheckedDC getCheckedDC(LongBitSet dc){
-        long t0 = System.currentTimeMillis();
-
-        if(!checkedDCDemo.containsKey(dc)){
-            CheckedDC checkedDC = checkDC(dc);
-            checkedDCDemo.put(dc.clone(), checkedDC);
-            if(checkedDC.hitCount < target)
-                checkedInvalidDemo.add(dc);
-        }
-
-        validateTime += System.currentTimeMillis() - t0;
-        return checkedDCDemo.get(dc);
-    }
-
-    public boolean check(LongBitSet dc){
+    public boolean checkDC(LongBitSet dc){
         if(checkedValidDemo.contains(dc))
             return true;
         else if(checkedInvalidDemo.contains(dc))
@@ -68,7 +44,7 @@ public class ApproxDynamicEvidence {
         else{
             long unhitCount = 0;
             long hitCount = 0;
-            for(Evidence evi: evidenceSetAll) {
+            for(Evidence evi: evidenceList) {
                 if (dc.isSubSetOf(evi.getBitSetPredicates()))
                     unhitCount += evi.count;
                 else
@@ -94,19 +70,32 @@ public class ApproxDynamicEvidence {
         }
     }
 
-    public boolean checkIsValid(LongBitSet dcBitSet){
-        long t0 = System.currentTimeMillis();
+    public boolean checkCanOffer(LongBitSet dc, Set<LongBitSet> validSet){
+        //向下走已经经过了
+        if(downwardVisitedDemo.contains(dc))
+            return false;
+        //是已经检查过无效的dc
+        if(checkedInvalidDemo.contains(dc))
+            return true;
         //是已有的最小的DC的超集，修剪
-        for(LongBitSet e: minValidDCDemo)
-            if(e.isSubSetOf(dcBitSet))
+        for(LongBitSet e: commonDCDemo)
+            if(e.isSubSetOf(dc))
                 return false;
-
-        checkTime += System.currentTimeMillis() - t0;
-
+        for(LongBitSet e: minValidDCDemo) {
+            if (e.isSubSetOf(dc)) {
+                commonDCDemo.add(e);
+                return false;
+            }
+        }
+        //如果是realSuperset,直接添加
+        if(validSet.contains(dc)){
+            minValidDCDemo.add(dc);
+            return false;
+        }
         return true;
     }
 
-    public boolean checkIsValid(LongBitSet dcBitSet, Set<LongBitSet> minValidDCDemo, Set<LongBitSet> realSubsetList){
+    public boolean checkIsValid(LongBitSet dcBitSet, Set<LongBitSet> realSubsetList){
         //不是realSubsetList里DC的超集
         boolean flag = false;
         for(LongBitSet e: realSubsetList)
@@ -138,47 +127,22 @@ public class ApproxDynamicEvidence {
         return bitSetList;
     }
 
-/*    public CheckedDC checkDC(LongBitSet dcLongbitset, EvidenceSet evidenceSet){
-        List<Evidence> unhitEvidence = new ArrayList<>();
-        long unhitCount = 0;
-        List<Evidence> hitEvidence = new ArrayList<>();
-        long hitCount = 0;
-        LongBitSet predicateUnChosen = new LongBitSet();
-
-        for(Evidence set: evidenceSet){
-            if(dcLongbitset.isSubSetOf(set.getBitSetPredicates())){
-                unhitCount += set.count;
-                unhitEvidence.add(set);
-                //predicateUnChosen = (evidence and (dc)') or predicateUnChosen
-                predicateUnChosen = predicateUnChosen.getOr(LongBitSet.getOr(dcLongbitset, set.getBitSetPredicates()).getXor(dcLongbitset));
-            }
-            else{
-                hitCount += set.count;
-                hitEvidence.add(set);
-            }
-        }
-
-        return new CheckedDC(unhitEvidence, unhitCount, hitEvidence, hitCount, predicateUnChosen);
-    }*/
-
-
     /** 验证向下走的downward方法*/
     public void downwardTraverse(LongBitSet dcBitSet){
+        if(downwardVisitedDemo.contains(dcBitSet))
+            return;
+        downwardVisitedDemo.add(dcBitSet);
         Queue<LongBitSet> queue = new LinkedList<>();
         queue.offer(dcBitSet);
-        downwardVisitedDemo.add(dcBitSet);
 
         while(!queue.isEmpty()){
             int size = queue.size();
             List<LongBitSet> invalidDemo = new ArrayList<>();
             for(int i = 0; i < size; i++){
                 LongBitSet cur = queue.poll();
-                CheckedDC checkedDC = getCheckedDC(cur);
-                //向下走成立了
-                if(target <= checkedDC.hitCount)
+                if(checkDC(cur))
                     minValidDCDemo.add(cur);
-                //不成立，打算继续向下走
-                if(target > checkedDC.hitCount)
+                else
                     invalidDemo.add(cur);
             }
             for (LongBitSet e: invalidDemo) {
@@ -189,16 +153,9 @@ public class ApproxDynamicEvidence {
                 for (int j = canAdd.nextSetBit(0); j >= 0; j = canAdd.nextSetBit(j + 1)) {
                     LongBitSet bitSetTemp = e.clone();
                     bitSetTemp.set(j);
-                    if(!downwardVisitedDemo.contains(bitSetTemp)){
-                        if(checkedInvalidDemo.contains(bitSetTemp)){
-                            queue.offer(bitSetTemp);
-                            downwardVisitedDemo.add(bitSetTemp);
-                        }
-                        //判断向下走后是否能剪枝，部分有效的dc被剪枝了
-                        else if(checkIsValid(bitSetTemp)){
-                            queue.offer(bitSetTemp);
-                            downwardVisitedDemo.add(bitSetTemp);
-                        }
+                    if(checkCanOffer(bitSetTemp, new HashSet<>())){
+                        queue.offer(bitSetTemp);
+                        downwardVisitedDemo.add(bitSetTemp);
                     }
                 }
             }
@@ -210,23 +167,14 @@ public class ApproxDynamicEvidence {
         queue.offer(dcBitSet);
         downwardVisitedDemo.add(dcBitSet);
 
-        /*//可以添加的谓词
-        LongBitSet canAdd = new LongBitSet(nPredicates);
-        for(LongBitSet e : realSupersetList)
-            canAdd.or(e);
-        canAdd.xor(dcBitSet);*/
-
         while(!queue.isEmpty()){
             int size = queue.size();
             List<LongBitSet> invalidDemo = new ArrayList<>();
             for(int i = 0; i < size; i++){
                 LongBitSet cur = queue.poll();
-                CheckedDC checkedDC = getCheckedDC(cur);
-                //向下走成立了
-                if(target <= checkedDC.hitCount)
+                if(checkDC(cur))
                     minValidDCDemo.add(cur);
-                //不成立，打算继续向下走
-                if(target > checkedDC.hitCount)
+                else
                     invalidDemo.add(cur);
             }
             for(LongBitSet e: invalidDemo){
@@ -238,41 +186,31 @@ public class ApproxDynamicEvidence {
                 for(int j = canAddSet.nextSetBit(0); j >= 0; j = canAddSet.nextSetBit(j + 1)){
                     LongBitSet bitSetTemp = e.clone();
                     bitSetTemp.set(j);
-                    if(!downwardVisitedDemo.contains(bitSetTemp)){
-                        if(checkedInvalidDemo.contains(bitSetTemp)){
-                            queue.offer(bitSetTemp);
-                            downwardVisitedDemo.add(bitSetTemp);
-                        }
-                        else if(checkIsValid(bitSetTemp)){
-                            //如果是realSuperset里的dc，直接添加
-                            if(realSupersetList.contains(bitSetTemp))
-                                minValidDCDemo.add(bitSetTemp);
-                            //判断向下走后是否能剪枝，部分有效的dc被剪枝了
-                            else {
-                                queue.offer(bitSetTemp);
-                                downwardVisitedDemo.add(bitSetTemp);
-                            }
-                        }
+                    if(checkCanOffer(bitSetTemp, realSupersetList)){
+                        queue.offer(bitSetTemp);
+                        downwardVisitedDemo.add(bitSetTemp);
                     }
                 }
             }
         }
     }
 
-
-    public void upwardTraverse(LongBitSet dcBitSet, LongBitSet canRemove, Set<LongBitSet> realSubsetList){
-        boolean isMinimal = true;
+    public void upwardTraverse(LongBitSet dcBitSet, boolean flag){
+        boolean isMinimal = flag;
         LongBitSet bitSetTemp = dcBitSet.clone();
+        LongBitSet canRemove = dcBitSet.clone();
         for(int i = canRemove.nextSetBit(0); i >= 0; i = canRemove.nextSetBit(i + 1)){
             bitSetTemp.clear(i);
-            if(checkIsValid(bitSetTemp, minValidDCDemo, realSubsetList)) {
-                if(!minValidDCDemo.contains(bitSetTemp)) {
-                    CheckedDC checkedDC = getCheckedDC(bitSetTemp);
-                    if (target <= checkedDC.hitCount) {
+            boolean canUp = true;
+            //用已有的最小DC剪枝
+            for(LongBitSet e: minValidDCDemo)
+                if(!e.equals(bitSetTemp) && bitSetTemp.isSubSetOf(e))
+                    canUp = false;
+            if(canUp) {
+                if(!minValidDCDemo.contains(bitSetTemp)){
+                    if (checkDC(bitSetTemp)) {
                         isMinimal = false;
-                        LongBitSet canRemoveSet = canRemove.clone();
-                        canRemoveSet.clear(i);
-                        upwardTraverse(bitSetTemp, canRemoveSet, realSubsetList);
+                        upwardTraverse(bitSetTemp, true);
                     }
                 } else isMinimal = false;
             }
@@ -282,16 +220,130 @@ public class ApproxDynamicEvidence {
             minValidDCDemo.add(bitSetTemp);
     }
 
+    public void upwardTraverse(LongBitSet dcBitSet, LongBitSet canRemove, Set<LongBitSet> realSubsetList, boolean flag){
+        boolean isMinimal = flag;
+        LongBitSet bitSetTemp = dcBitSet.clone();
+        for(int i = canRemove.nextSetBit(0); i >= 0; i = canRemove.nextSetBit(i + 1)){
+            bitSetTemp.clear(i);
+            if(checkIsValid(bitSetTemp, realSubsetList)) {
+                if(!minValidDCDemo.contains(bitSetTemp)) {
+                    if (checkDC(bitSetTemp)) {
+                        isMinimal = false;
+                        LongBitSet canRemoveSet = canRemove.clone();
+                        canRemoveSet.clear(i);
+                        upwardTraverse(bitSetTemp, canRemoveSet, realSubsetList, true);
+                    }
+                } else isMinimal = false;
+            }
+            bitSetTemp.set(i);
+        }
+        if(isMinimal)
+            minValidDCDemo.add(bitSetTemp);
+    }
+
+    public DenialConstraintSet buildDelete(EvidenceSet evidenceSet,DenialConstraintSet originDCSet, DenialConstraintSet additionDCSet, long targetNumber){
+        this.evidenceList = evidenceSet.getEvidenceList();
+        this.target = targetNumber;
+        this.limit = evidenceSet.getTotalCount() - target;
+
+        Set<LongBitSet> setOrigin = originDCSet.getBitSetSet();
+        Set<LongBitSet> setAddition = additionDCSet.getBitSetSet();
+        Set<LongBitSet> setExtra = new HashSet<>(setOrigin);
+
+        Map<LongBitSet, Set<LongBitSet>> supersetMap = new HashMap<>();
+        List<LongBitSet> upwardDCList = new ArrayList<>();
+        List<LongBitSet> downwardDCList = new ArrayList<>();
+        List<LongBitSet> extraDCList = new ArrayList<>(setExtra);
+
+        long t0 = System.currentTimeMillis();
+
+        for (LongBitSet dc: setAddition){
+            // addition上 X 为最小DC
+            if(setOrigin.contains(dc)){
+                if(checkDC(dc))
+                    upwardDCList.add(dc);
+                else
+                    extraDCList.add(dc);
+                setExtra.remove(dc);
+                continue;
+            }
+            Set<LongBitSet> realSupersetList = getRealSupersetOf(dc, setOrigin);
+            Set<LongBitSet> realSubsetList = getRealSubsetOf(dc, setOrigin);
+            realSubsetList.forEach(setExtra::remove);
+            realSupersetList.forEach(setExtra::remove);
+
+            if(!realSupersetList.isEmpty()){
+                supersetMap.put(dc, realSupersetList);
+                if(checkDC(dc))
+                    downwardDCList.add(dc);
+                else{
+                    for(LongBitSet e: realSupersetList)
+                        if(!extraDCList.contains(e))
+                            extraDCList.add(e);
+                }
+            }
+            else if (!realSubsetList.isEmpty()){
+                for (LongBitSet e: realSubsetList)
+                    if(!upwardDCList.contains(e))
+                        upwardDCList.add(e);
+                /*subsetMap.put(dc, realSubsetList);
+                upwardDCList.add(dc);*/
+            }
+        }
+        // 遍历origin上的addition够不着的DC
+        upwardDCList.addAll(setExtra);
+
+        //将向上向下走的DCList按谓词个数排序
+        upwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
+        downwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
+        extraDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
+
+        System.out.println(System.currentTimeMillis() - t0);
+
+        long t1 = System.currentTimeMillis();
+        //向上走
+        for(LongBitSet dc: upwardDCList){
+            upwardTraverse(dc, true);
+        }
+        System.out.println(System.currentTimeMillis() - t1);
+
+        long t2 = System.currentTimeMillis();
+        //向下走
+        for(LongBitSet dc: downwardDCList){
+            downwardTraverse(dc, supersetMap.get(dc));
+        }
+        System.out.println(System.currentTimeMillis() - t2);
+
+        long t3 = System.currentTimeMillis();
+        //向下走
+        for(LongBitSet dc: extraDCList){
+            downwardTraverse(dc);
+        }
+        System.out.println(System.currentTimeMillis() - t3);
+
+        long t4 = System.currentTimeMillis();
+
+        DenialConstraintSet constraints = new DenialConstraintSet();
+        for (LongBitSet rawDC : minValidDCDemo)
+            constraints.add(new DenialConstraint(rawDC));
+
+        System.out.println("  [PACS] Total DC size: " + constraints.size());
+
+        constraints.minimize();
+
+        System.out.println("  [PACS] Min DC size : " + constraints.size());
+
+        System.out.println(System.currentTimeMillis() - t4);
+
+        return constraints;
+
+    }
 
 
     public DenialConstraintSet buildInsert(EvidenceSet evidenceSet,DenialConstraintSet originDCSet, DenialConstraintSet additionDCSet, long targetNumber){
-        this.evidenceSetAll = evidenceSet;
+        this.evidenceList = evidenceSet.getEvidenceList();
         this.target = targetNumber;
-        this.limit = evidenceSetAll.getTotalCount() - target;
-        checkedDCDemo = new HashMap<>();
-        minValidDCDemo = new HashSet<>();
-        checkedInvalidDemo = new HashSet<>();
-        downwardVisitedDemo = new HashSet<>();
+        this.limit = evidenceSet.getTotalCount() - target;
 
         Set<LongBitSet> setOrigin = originDCSet.getBitSetSet();
         Set<LongBitSet> setAddition = additionDCSet.getBitSetSet();
@@ -330,53 +382,59 @@ public class ApproxDynamicEvidence {
         }
         // 遍历origin上的addition够不着的DC
         extraDCList.addAll(setExtra);
-        //将向上向下走的DCList按谓词个数排序
-        upwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
-        downwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
-        extraDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
 
         System.out.println(System.currentTimeMillis() - t0);
 
         long t1 = System.currentTimeMillis();
 
+        //将向上走的DCList按谓词个数排序
+        upwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
         // 从 X+P 向上走
         for(LongBitSet dc: upwardDCList){
             Set<LongBitSet> realSubsetList = subsetMap.get(dc);
             Set<LongBitSet> invalidDemo = new HashSet<>();
+            boolean flag = true;
             LongBitSet canRemove = new LongBitSet(nPredicates);
+
             for(LongBitSet bitSet: realSubsetList){
                 //在all上验证 X
-                CheckedDC checkedDC = getCheckedDC(bitSet);
                 // X 在all上成立，则它为all上最小DC
-                if(target <= checkedDC.hitCount)
+                if(checkDC(bitSet)){
                     minValidDCDemo.add(bitSet);
+                    flag = false;
+                }
                 // X在all上不成立
-                if(target > checkedDC.hitCount){
+                else{
                     invalidDemo.add(bitSet);
                     //可以去掉的谓词
                     canRemove.or(bitSet.getXor(dc));
                 }
             }
+
             if(!invalidDemo.isEmpty())
                 // 从 X+P 向上走到 X
-                upwardTraverse(dc, canRemove, realSubsetList);
+                upwardTraverse(dc, canRemove, realSubsetList, flag);
 
+            for(LongBitSet e: invalidDemo)
+                if(!extraDCList.contains(e))
+                    extraDCList.add(e);
         }
 
         System.out.println(System.currentTimeMillis() - t1);
 
         long t2 = System.currentTimeMillis();
 
+        //将向下走的DCList按谓词个数排序
+        downwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
         // 从 X-P 向下走
         for(LongBitSet dc: downwardDCList){
             Set<LongBitSet> realSupersetList = supersetMap.get(dc);
             // 在all上验证 X-P
-            CheckedDC checkedDC = getCheckedDC(dc);
             // X-P 在all上成立，则它为all上最小DC
-            if(target <= checkedDC.hitCount)
+            if(checkDC(dc))
                 minValidDCDemo.add(dc);
             // X-P 在all上不成立,从 X-P 向下走到 X
-            if(target > checkedDC.hitCount)
+            else
                 downwardTraverse(dc, realSupersetList);
         }
 
@@ -384,21 +442,21 @@ public class ApproxDynamicEvidence {
 
         long t3 = System.currentTimeMillis();
 
+        //将向下走的DCList按谓词个数排序
+        extraDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
         // 从 Y 向下走
         for(LongBitSet dc: extraDCList){
-            CheckedDC checkedDC = getCheckedDC(dc);
-
-            if(target <= checkedDC.hitCount)
+            if(checkDC(dc))
                 minValidDCDemo.add(dc);
+                //upwardTraverse(dc, true);
             // downward
-            if(target > checkedDC.hitCount)
+            else
                 downwardTraverse(dc);
         }
 
         System.out.println(System.currentTimeMillis() - t3);
 
-        System.out.println("Check Time: " + checkTime);
-        System.out.println("Validate Time: " + validateTime);
+        long t4 = System.currentTimeMillis();
 
         DenialConstraintSet constraints = new DenialConstraintSet();
         for (LongBitSet rawDC : minValidDCDemo)
@@ -409,6 +467,8 @@ public class ApproxDynamicEvidence {
         constraints.minimize();
 
         System.out.println("  [PACS] Min DC size : " + constraints.size());
+
+        System.out.println(System.currentTimeMillis() - t4);
 
         return constraints;
     }
