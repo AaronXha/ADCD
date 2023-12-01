@@ -108,7 +108,7 @@ public class ApproxEvidenceInverter {
 
             // unhit evidences[e]  所有的dc候选者都已经覆盖了当前的这个evi  那么就不存在不覆盖这个evi的可能了。
             if (unhitEviDCs.isEmpty()) return;
-            //如果我不覆盖这个evid，那么我可选的谓词只能是evid里面出现过的。
+            //如果我不覆盖这个evi，那么我可选的谓词只能是evi里面出现过的。
             addablePredicates.and(evi);
             //如果没有了候选的谓词 那么就结束了。
             if (addablePredicates.isEmpty()) return;
@@ -212,7 +212,7 @@ public class ApproxEvidenceInverter {
     }
 
     private int[] getCounts(EvidenceSet evidenceSet) {
-        //统计每个谓词在evidenceset中出现了多少此
+        //统计每个谓词在evidenceSet中出现了多少此
         int[] counts = new int[nPredicates];
         for (Evidence evidence : evidenceSet) {
             LongBitSet bitset = evidence.getBitSetPredicates();

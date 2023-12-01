@@ -64,6 +64,25 @@ public class ExactDynamicEvidence {
         return bitSetList;
     }
 
+    public void upwardTraverse(LongBitSet dcBitSet, boolean flag){
+        boolean isMinimal = flag;
+        LongBitSet bitSetTemp = dcBitSet.clone();
+        LongBitSet canRemove = dcBitSet.clone();
+        if(bitSetTemp.cardinality() > 0){
+            for(int i = canRemove.nextSetBit(0); i >= 0; i = canRemove.nextSetBit(i + 1)){
+                bitSetTemp.clear(i);
+                if (checkDC(bitSetTemp)) {
+                    isMinimal = false;
+                    upwardTraverse(bitSetTemp, true);
+                }
+                bitSetTemp.set(i);
+            }
+        }
+        if(isMinimal){
+            minValidDCDemo.add(bitSetTemp);
+        }
+    }
+
     public DenialConstraintSet buildInsert(EvidenceSet evidenceSet,DenialConstraintSet originDCSet, DenialConstraintSet additionDCSet){
         this.evidenceList = evidenceSet.getEvidenceList();
 
@@ -108,32 +127,41 @@ public class ExactDynamicEvidence {
         return constraints;
     }
 
-/*    public DenialConstraintSet buildDelete(EvidenceSet evidenceSet,DenialConstraintSet originDCSet, DenialConstraintSet additionDCSet){
+    public DenialConstraintSet buildDelete(EvidenceSet evidenceSet,DenialConstraintSet originDCSet, DenialConstraintSet additionDCSet){
         this.evidenceList = evidenceSet.getEvidenceList();
 
         Set<LongBitSet> setOrigin = originDCSet.getBitSetSet();
         Set<LongBitSet> setAddition = additionDCSet.getBitSetSet();
+
+        List<LongBitSet> upwardDCList = new ArrayList<>();
+        List<LongBitSet> downwardDCList = new ArrayList<>();
 
         long t0 = System.currentTimeMillis();
 
         for (LongBitSet dc: setAddition){
             // addition上 X 为最小DC
             if(setOrigin.contains(dc)){
-                minValidDCDemo.add(dc);
+                upwardDCList.add(dc);
                 continue;
             }
             Set<LongBitSet> realSupersetList = getRealSupersetOf(dc, setOrigin);
             Set<LongBitSet> realSubsetList = getRealSubsetOf(dc, setOrigin);
 
             if(!realSupersetList.isEmpty()){
-                minValidDCDemo.add(dc);
+                minValidDCDemo.addAll(realSupersetList);
             }
             else if(!realSubsetList.isEmpty()){
-                minValidDCDemo.addAll(realSubsetList);
+                minValidDCDemo.add(dc);
             }
         }
 
+        /* 还有remain上成立但origin和addition上都不成立的找不出来*/
+
         System.out.println(System.currentTimeMillis() - t0);
+
+        for(LongBitSet dc: upwardDCList){
+            upwardTraverse(dc, true);
+        }
 
         long t1 = System.currentTimeMillis();
 
@@ -150,7 +178,7 @@ public class ExactDynamicEvidence {
         System.out.println(System.currentTimeMillis() - t1);
 
         return constraints;
-    }*/
+    }
 
 
 }

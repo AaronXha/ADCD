@@ -31,7 +31,7 @@ public class DADC {
         //dadc.buildAdd(origin,add);
         dadc.buildAdd(path, 0.2);
 
-        //dadc.buildDelete(path,0.2);
+        //dadc.buildDelete(path,0.4);
     }
 
     private final boolean noCrossColumn;
@@ -626,7 +626,7 @@ public class DADC {
         setAll.sort(Comparator.comparingInt(LongBitSet::cardinality));
         setDynamic.sort(Comparator.comparingInt(LongBitSet::cardinality));
 
-/*        for(LongBitSet dc: setOrigin){
+        for(LongBitSet dc: setOrigin){
             //System.out.println(dc);
             List<Integer> list = new ArrayList<>();
             for (int i = dc.nextSetBit(0); i >= 0; i = dc.nextSetBit(i + 1))
@@ -657,7 +657,7 @@ public class DADC {
                 list.add(i);
             System.out.println(list);
         }
-        System.out.println();*/
+        System.out.println();
 
         Map<LongBitSet, CheckedDC> checkedDemo1 = new HashMap<>();
         for(DenialConstraint dc: dcSetNew){
@@ -668,8 +668,11 @@ public class DADC {
                 for (int i = dcBitSet.nextSetBit(0); i >= 0; i = dcBitSet.nextSetBit(i + 1))
                     list.add(i);
                 System.out.println(list);
-                if(checkedDemo1.get(dcBitSet).hitCount < leastEvidenceToCover)
+                if(checkedDemo1.get(dcBitSet).hitCount < leastEvidenceToCover){
                     System.out.println("false");
+                    if(checkDC(dcBitSet, evidenceSetRemain, leastEvidenceToCover))
+                        System.out.println("yes");
+                }
             }
         }
         System.out.println();
@@ -687,5 +690,25 @@ public class DADC {
             }
         }
         System.out.println();
+    }
+
+    public boolean checkDC(LongBitSet dc, EvidenceSet evidenceList, long target){
+            long limit = evidenceList.getTotalCount() - target;
+            long unhitCount = 0;
+            long hitCount = 0;
+            for(Evidence evi: evidenceList) {
+                if (dc.isSubSetOf(evi.getBitSetPredicates()))
+                    unhitCount += evi.count;
+                else
+                    hitCount += evi.count;
+
+                if(unhitCount > limit){
+                    return false;
+                }
+                if(hitCount >= target){
+                    return true;
+                }
+            }
+        return hitCount >= target;
     }
 }
