@@ -540,6 +540,7 @@ public class ApproxDynamicEvidence {
             // X-P 在all上不成立,从 X-P 向下走到 X
             else
                 downwardTraverse(dc, realSupersetList);
+                //downwardAEI(dc);
         }
 
         System.out.println(System.currentTimeMillis() - t2);
@@ -554,9 +555,9 @@ public class ApproxDynamicEvidence {
                 minValidDCDemo.add(dc);
             // downward
             else
-                //downwardTraverse(dc);
+                downwardTraverse(dc);
                 //downwardDFS(dc, getAddList(dc));
-                downwardAEI(dc);
+                //downwardAEI(dc);
         }
 
         System.out.println(System.currentTimeMillis() - t3);

@@ -14,7 +14,7 @@ public class AEI {
 
     private final int nPredicates;
     public LongBitSet[] mutexMap;   // i -> indices of predicates from the same column pair with predicate i
-    public List<Evidence> evidenceList;
+    public List<Evidence> evidenceUncover;
     public boolean ascending;//升序
     public long target;
     public LongBitSet dc;
@@ -23,18 +23,27 @@ public class AEI {
 
     public AEI(LongBitSet dc, List<Evidence> evidenceList, LongBitSet[] mutexMap, long target, boolean ascending, int nPredicates){
         this.nPredicates = nPredicates;
-        this.evidenceList = evidenceList;
         this.mutexMap = mutexMap;
         this.target = target;
         this.ascending = ascending;
         ArrayTreeSearch.N = nPredicates;
         this.dc = dc;
-        this.canAdd = getCandidate();
+        this.evidenceUncover = new ArrayList<>();
+        this.canAdd = new LongBitSet();
+        for(Evidence evi: evidenceList){
+            LongBitSet e = evi.getBitSetPredicates();
+            if(dc.isSubSetOf(e)){
+                canAdd.or(LongBitSet.getXor(dc, e));
+                /*for (int i = e.nextSetBit(0); i >= 0; i = e.nextSetBit(i + 1))    if (!dc.get(i))    predicateUnchosen.set(i);*/
+                evidenceUncover.add(evi);
+            }
+        }
+        for(int i = dc.nextSetBit(0); i >= 0; i = dc.nextSetBit(i + 1))
+            canAdd.andNot(mutexMap[i]);
+
         /*this.canAdd = new LongBitSet(nPredicates);
         for(int i = 0; i < nPredicates; i++)
             canAdd.set(i);*/
-        for(int i = dc.nextSetBit(0); i >= 0; i = dc.nextSetBit(i + 1))
-            canAdd.andNot(mutexMap[i]);
     }
 
     private int[] getCounts(List<Evidence> evidenceList) {
@@ -64,39 +73,24 @@ public class AEI {
     public boolean isApproxCover(LongBitSet dc, int e, long target) {
         //target 表示还需要覆盖多少个evidence
         if (target <= 0) return true;
-        for (; e < evidenceList.size(); e++) {
+        for (; e < evidenceUncover.size(); e++) {
             //如果下面判断数为真 那么说明还没有覆盖当前这个evidence  那么这个数字就不能被加上
-            if (!dc.isSubSetOf(evidenceList.get(e).bitset)) {
-                target -= evidenceList.get(e).count;
+            if (!dc.isSubSetOf(evidenceUncover.get(e).bitset)) {
+                target -= evidenceUncover.get(e).count;
                 if (target <= 0) return true;
             }
         }
         return false;
     }
 
-    public LongBitSet getCandidate(){
-        LongBitSet predicateUnchosen = new LongBitSet();
-        for(Evidence evi: evidenceList){
-            LongBitSet e = evi.getBitSetPredicates();
-            if(dc.isSubSetOf(e)) {
-                predicateUnchosen.or(LongBitSet.getXor(dc, e));
-/*                for (int i = e.nextSetBit(0); i >= 0; i = e.nextSetBit(i + 1)) {
-                    if (!dc.get(i))
-                        predicateUnchosen.set(i);
-                }*/
-            }
-        }
-        return predicateUnchosen;
-    }
-
     public Set<LongBitSet> build(){
-        int[] counts = getCounts(evidenceList);
+        int[] counts = getCounts(evidenceUncover);
         ArrayIndexComparator comparator = new ArrayIndexComparator(counts, ascending);
         translator = new BitSetTranslator(comparator.createIndexArray());
-        evidenceList = transformEvidenceList(evidenceList);
+        evidenceUncover = transformEvidenceList(evidenceUncover);
         mutexMap = transformMutexMap(mutexMap);
         //按照evidence的频率从高到低排
-        evidenceList.sort((o1, o2) -> Long.compare(o2.count, o1.count));
+        evidenceUncover.sort((o1, o2) -> Long.compare(o2.count, o1.count));
 
         //执行
         //System.out.println("  [PACS] Inverting evidences...");
@@ -118,7 +112,7 @@ public class AEI {
         while (!nodes.isEmpty()) {
             SearchNode nd = nodes.pop();
             //遍历完所有的evidence或者没有可以加入的predicate 那么就结束了。
-            if (nd.e >= evidenceList.size() || nd.addablePredicates.isEmpty())
+            if (nd.e >= evidenceUncover.size() || nd.addablePredicates.isEmpty())
                 continue;
             hit(nd, approxCovers);    // hit evidences[e]
             if (nd.target > 0)
@@ -135,8 +129,8 @@ public class AEI {
     }
 
     public void walk(int e, LongBitSet addablePredicates, ArrayTreeSearch dcCandidates, long target, Stack<SearchNode> nodes, ArrayTreeSearch approxCovers, String status) {
-        while (e < evidenceList.size() && !dcCandidates.isEmpty()) {
-            LongBitSet evi = evidenceList.get(e).bitset;
+        while (e < evidenceUncover.size() && !dcCandidates.isEmpty()) {
+            LongBitSet evi = evidenceUncover.get(e).bitset;
             //将无效的dc收集起来，就是从候选集里面不能覆盖当前evi的dc收集起来 然后添加新的谓词来 即这个无效dc里面的谓词都是这个evi的子集。
             Collection<DCCandidate> unhitEviDCs = dcCandidates.getAndRemoveGeneralizations(evi);
 
@@ -153,9 +147,9 @@ public class AEI {
 
             //如果不覆盖这个evi  且后面的全部覆盖 也不能达到target  那么就不必要进行了结束。
             long maxCanHit = 0L;
-            for (int i = e + 1; i < evidenceList.size(); i++)
-                if (!addablePredicates.isSubSetOf(evidenceList.get(i).bitset))
-                    maxCanHit += evidenceList.get(i).count;
+            for (int i = e + 1; i < evidenceUncover.size(); i++)
+                if (!addablePredicates.isSubSetOf(evidenceUncover.get(i).bitset))
+                    maxCanHit += evidenceUncover.get(i).count;
             if (maxCanHit < target) return;
             //为不覆盖当前evi  构建新的dcCandidate的树  方便搜索。
             ArrayTreeSearch newCandidates = new ArrayTreeSearch();
@@ -176,12 +170,12 @@ public class AEI {
 
     public void hit(SearchNode nd, ArrayTreeSearch approxCovers) {
         //如果候选predicates是evi的subset 那么就不可能覆盖了  直接结束。
-        if (nd.e >= evidenceList.size() || nd.addablePredicates.isSubSetOf(evidenceList.get(nd.e).bitset))
+        if (nd.e >= evidenceUncover.size() || nd.addablePredicates.isSubSetOf(evidenceUncover.get(nd.e).bitset))
             return;
 
-        nd.target -= evidenceList.get(nd.e).count;
+        nd.target -= evidenceUncover.get(nd.e).count;
 
-        LongBitSet evi = evidenceList.get(nd.e).bitset;
+        LongBitSet evi = evidenceUncover.get(nd.e).bitset;
         ArrayTreeSearch dcCandidates = nd.dcCandidates;
 
         //如果小于0  那么这个候选dc全部加入到结果中去。
