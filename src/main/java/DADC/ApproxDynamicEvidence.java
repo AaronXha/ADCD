@@ -176,11 +176,11 @@ public class ApproxDynamicEvidence {
 
     /** 向下走的aei方法*/
     public void downwardAEI(LongBitSet dcBitSet){
-        if(downwardVisitedDemo.contains(dcBitSet))
-            return;
+        /*if(!checkCanOffer(dcBitSet, new HashSet<>()))
+            return;*/
         downwardVisitedDemo.add(dcBitSet);
 
-        AEI aei = new AEI(dcBitSet, evidenceList, mutexMap, target, true, nPredicates);
+        AEI aei = new AEI(dcBitSet, evidenceList, minValidDCDemo, mutexMap, target, true, nPredicates);
         minValidDCDemo.addAll(aei.build());
     }
 
@@ -474,18 +474,33 @@ public class ApproxDynamicEvidence {
             if(!realSupersetList.isEmpty()){
                 realSupersetList.forEach(setExtra::remove);
                 supersetMap.put(dc, realSupersetList);
-                downwardDCList.add(dc);
+                // 在all上验证 X-P
+                // X-P 在all上成立，则它为all上最小DC
+                if(checkDC(dc))
+                    minValidDCDemo.add(dc);
+                // X-P 在all上不成立,从 X-P 向下走到 X
+                else
+                    downwardDCList.add(dc);
             }
             else if (!realSubsetList.isEmpty()){
                 realSubsetList.forEach(setExtra::remove);
                 subsetMap.put(dc, realSubsetList);
                 upwardDCList.add(dc);
             }
+            else{
+                if(checkDC(dc))
+                    minValidDCDemo.add(dc);
+                else
+                    extraDCList.add(dc);
+            }
+        }
+        // 遍历origin上的addition够不着的DC
+        for(LongBitSet dc: setExtra){
+            if(checkDC(dc))
+                minValidDCDemo.add(dc);
             else
                 extraDCList.add(dc);
         }
-        // 遍历origin上的addition够不着的DC
-        extraDCList.addAll(setExtra);
 
         System.out.println(System.currentTimeMillis() - t0);
 
@@ -529,18 +544,12 @@ public class ApproxDynamicEvidence {
         long t2 = System.currentTimeMillis();
 
         //将向下走的DCList按谓词个数排序
-        downwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
+        //downwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
         // 从 X-P 向下走
         for(LongBitSet dc: downwardDCList){
             Set<LongBitSet> realSupersetList = supersetMap.get(dc);
-            // 在all上验证 X-P
-            // X-P 在all上成立，则它为all上最小DC
-            if(checkDC(dc))
-                minValidDCDemo.add(dc);
-            // X-P 在all上不成立,从 X-P 向下走到 X
-            else
-                downwardTraverse(dc, realSupersetList);
-                //downwardAEI(dc);
+            //downwardTraverse(dc, realSupersetList);
+            downwardAEI(dc);
         }
 
         System.out.println(System.currentTimeMillis() - t2);
@@ -548,17 +557,12 @@ public class ApproxDynamicEvidence {
         long t3 = System.currentTimeMillis();
 
         //将向下走的DCList按谓词个数排序
-        extraDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
+        //extraDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
         // 从 Y 向下走
-        for(LongBitSet dc: extraDCList){
-            if(checkDC(dc))
-                minValidDCDemo.add(dc);
-            // downward
-            else
-                downwardTraverse(dc);
-                //downwardDFS(dc, getAddList(dc));
-                //downwardAEI(dc);
-        }
+        for(LongBitSet dc: extraDCList)
+            //downwardTraverse(dc);
+            //downwardDFS(dc, getAddList(dc));
+            downwardAEI(dc);
 
         System.out.println(System.currentTimeMillis() - t3);
 

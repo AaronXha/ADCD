@@ -26,7 +26,7 @@ public class EvidenceSetBuilder {
         return fullEvidenceSet;
     }
 
-    public EvidenceSet buildCrossEvidenceSet(PliShard[] left_pliShards,PliShard[] right_pliShard) throws ExecutionException, InterruptedException {
+    public EvidenceSet buildCrossEvidenceSet(PliShard[] left_pliShards,PliShard[] right_pliShard) {
         if (left_pliShards.length != 0 && right_pliShard.length != 0) {
             HashLongLongMap clueSet = buildCrossSet(left_pliShards, right_pliShard);
 

@@ -20,13 +20,13 @@ public class DADC {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         String origin = "dataset/test_origin.csv";
         String add = "dataset/test_new.csv";
-        String path ="dataset/airport.csv";
+        String path ="dataset/2_Tax1M.csv";
 
 /*        String origin = "dataset/atom_origin.csv";
         String add = "dataset/atom_new.csv";
         String path="dataset/atom.csv";*/
 
-        DADC dadc = new DADC(true,0.01,350);
+        DADC dadc = new DADC(false,0.01,350);
         //dadc.build(path);
         //dadc.buildAdd(origin,add);
         dadc.buildAdd(path, 0.2);
@@ -294,6 +294,8 @@ public class DADC {
 
         long target = (long)Math.ceil((1 - threshold) * (input.getRowCount()) * (input.getRowCount() - 1));
         DenialConstraintSet dcSet = aei.buildDenialConstraints(evidenceSet, target);
+        dcSet.minimize();
+        System.out.println("  [PACS] Min DC size : " + dcSet.size());
         long t_aei = System.currentTimeMillis() - t02;
         System.out.println(" [TIME] AEI time: " + t_aei + "ms");
 
@@ -431,7 +433,7 @@ public class DADC {
         setAll.sort(Comparator.comparingInt(LongBitSet::cardinality));
         setDynamic.sort(Comparator.comparingInt(LongBitSet::cardinality));
 
-/*        for(LongBitSet dc: setOrigin){
+        /*for(LongBitSet dc: setOrigin){
             //System.out.println(dc);
             List<Integer> list = new ArrayList<>();
             for (int i = dc.nextSetBit(0); i >= 0; i = dc.nextSetBit(i + 1))
@@ -464,7 +466,7 @@ public class DADC {
         }
         System.out.println();*/
 
-        Map<LongBitSet, CheckedDC> checkedDemo1 = new HashMap<>();
+        /*Map<LongBitSet, CheckedDC> checkedDemo1 = new HashMap<>();
         for(DenialConstraint dc: dcSetNew){
             if(!fullDCSet.contains(dc)) {
                 LongBitSet dcBitSet = dc.getPredicateSet().getBitset();
@@ -490,7 +492,7 @@ public class DADC {
                 if(checkedDemo2.get(dcBitSet).hitCount < leastEvidenceToCover)
                     System.out.println("false");
             }
-        }
+        }*/
         System.out.println();
     }
 

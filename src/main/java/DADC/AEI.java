@@ -15,19 +15,22 @@ public class AEI {
     private final int nPredicates;
     public LongBitSet[] mutexMap;   // i -> indices of predicates from the same column pair with predicate i
     public List<Evidence> evidenceUncover;
+    public List<LongBitSet> minValidDCDemo;
     public boolean ascending;//升序
     public long target;
     public LongBitSet dc;
     public LongBitSet canAdd;
     BitSetTranslator translator;    // re-order predicates by evidence coverage
 
-    public AEI(LongBitSet dc, List<Evidence> evidenceList, LongBitSet[] mutexMap, long target, boolean ascending, int nPredicates){
+    public AEI(LongBitSet dc, List<Evidence> evidenceList, Set<LongBitSet> minValidDCDemo, LongBitSet[] mutexMap, long target, boolean ascending, int nPredicates){
         this.nPredicates = nPredicates;
         this.mutexMap = mutexMap;
         this.target = target;
         this.ascending = ascending;
         ArrayTreeSearch.N = nPredicates;
         this.dc = dc;
+        this.minValidDCDemo = new ArrayList<>(minValidDCDemo);
+        //this.minValidDCDemo.sort(Comparator.comparingInt(LongBitSet::cardinality));
         this.evidenceUncover = new ArrayList<>();
         this.canAdd = new LongBitSet();
         for(Evidence evi: evidenceList){
@@ -37,13 +40,17 @@ public class AEI {
                 /*for (int i = e.nextSetBit(0); i >= 0; i = e.nextSetBit(i + 1))    if (!dc.get(i))    predicateUnchosen.set(i);*/
                 evidenceUncover.add(evi);
             }
+            else
+                this.target -= evi.count;
         }
         for(int i = dc.nextSetBit(0); i >= 0; i = dc.nextSetBit(i + 1))
             canAdd.andNot(mutexMap[i]);
-
-        /*this.canAdd = new LongBitSet(nPredicates);
-        for(int i = 0; i < nPredicates; i++)
-            canAdd.set(i);*/
+        /*for(LongBitSet e: this.minValidDCDemo) {
+            if (e.cardinality() == 1)
+                canAdd.andNot(e);
+            else
+                break;
+        }*/
     }
 
     private int[] getCounts(List<Evidence> evidenceList) {
@@ -155,18 +162,32 @@ public class AEI {
             ArrayTreeSearch newCandidates = new ArrayTreeSearch();
             for (DCCandidate dc : unhitEviDCs) {
                 LongBitSet unhitCand = dc.cand.getAnd(evi);
-                if (!unhitCand.isEmpty())
-                    newCandidates.add(new DCCandidate(dc.bitSet, unhitCand));
+                if (!unhitCand.isEmpty()){
+                    //if(checkCanAdd(dc.bitSet.clone()))
+                        newCandidates.add(new DCCandidate(dc.bitSet, unhitCand));
+                }
                     //如果没有了候选，说明递归结束了 那么需要直接进行判断是否是有效的dc
                 else if (!approxCovers.containsSubset(dc) && isApproxCover(dc.bitSet, e + 1, target))
                     approxCovers.add(dc);
             }
+
             if (newCandidates.isEmpty()) return;
 
             e++;
             dcCandidates = newCandidates;
         }
     }
+
+    public boolean checkCanAdd(LongBitSet dc){
+        dc = translator.retransform(dc);
+        for(LongBitSet e: minValidDCDemo) {
+            if (e.isSubSetOf(dc)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     public void hit(SearchNode nd, ArrayTreeSearch approxCovers) {
         //如果候选predicates是evi的subset 那么就不可能覆盖了  直接结束。
@@ -182,13 +203,15 @@ public class AEI {
         if (nd.target <= 0) {
             dcCandidates.forEach(approxCovers::add);
             for (DCCandidate invalidDC : nd.invalidDCs) {
-                //如果我需要覆盖了当前的  我可选的是addPredicate和notevi的交集
+                //如果我需要覆盖了当前的  我可选的是addPredicate和not evi的交集
                 LongBitSet canAdd = invalidDC.cand.getAndNot(evi);
                 for (int i = canAdd.nextSetBit(0); i >= 0; i = canAdd.nextSetBit(i + 1)) {
                     DCCandidate validDC = invalidDC.clone();
                     validDC.bitSet.set(i);
-                    if (!approxCovers.containsSubset(validDC))
-                        approxCovers.add(validDC);
+                    if (!approxCovers.containsSubset(validDC)){
+                        if(checkCanAdd(validDC.bitSet.clone()))
+                            approxCovers.add(validDC);
+                    }
                 }
             }
         } else {
@@ -200,8 +223,10 @@ public class AEI {
                     //一个谓词组只能选择其他一个 如果我选了其中一个，那么我的候选predicate需要把这个谓词组给排除。
                     validDC.cand.andNot(mutexMap[i]);
                     if (!dcCandidates.containsSubset(validDC) && !approxCovers.containsSubset(validDC)) {
-                        if (!validDC.cand.isEmpty())
-                            dcCandidates.add(validDC);
+                        if (!validDC.cand.isEmpty()){
+                            if(checkCanAdd(validDC.bitSet.clone()))
+                                dcCandidates.add(validDC);
+                        }
                             //如果候选为空了 那么就需要进行判断 如果满足要求 那么就加入到最后的结果里面
                         else if (isApproxCover(validDC.bitSet, nd.e + 1, nd.target))
                             approxCovers.add(validDC);
