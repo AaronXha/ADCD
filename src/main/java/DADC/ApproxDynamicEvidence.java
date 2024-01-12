@@ -468,10 +468,22 @@ public class ApproxDynamicEvidence {
                 setExtra.remove(dc);
                 continue;
             }
-            Set<LongBitSet> realSupersetList = getRealSupersetOf(dc, setOrigin);
+            //Set<LongBitSet> realSupersetList = getRealSupersetOf(dc, setOrigin);
             Set<LongBitSet> realSubsetList = getRealSubsetOf(dc, setOrigin);
 
-            if(!realSupersetList.isEmpty()){
+            if (!realSubsetList.isEmpty()){
+                realSubsetList.forEach(setExtra::remove);
+                subsetMap.put(dc, realSubsetList);
+                upwardDCList.add(dc);
+            }
+            else{
+                if(checkDC(dc))
+                    minValidDCDemo.add(dc);
+                else
+                    extraDCList.add(dc);
+            }
+
+            /*if(!realSupersetList.isEmpty()){
                 realSupersetList.forEach(setExtra::remove);
                 supersetMap.put(dc, realSupersetList);
                 // 在all上验证 X-P
@@ -492,7 +504,7 @@ public class ApproxDynamicEvidence {
                     minValidDCDemo.add(dc);
                 else
                     extraDCList.add(dc);
-            }
+            }*/
         }
         // 遍历origin上的addition够不着的DC
         for(LongBitSet dc: setExtra){
@@ -541,7 +553,7 @@ public class ApproxDynamicEvidence {
 
         System.out.println(System.currentTimeMillis() - t1);
 
-        long t2 = System.currentTimeMillis();
+        /*long t2 = System.currentTimeMillis();
 
         //将向下走的DCList按谓词个数排序
         //downwardDCList.sort(Comparator.comparingInt(LongBitSet::cardinality));
@@ -552,7 +564,7 @@ public class ApproxDynamicEvidence {
             downwardAEI(dc);
         }
 
-        System.out.println(System.currentTimeMillis() - t2);
+        System.out.println(System.currentTimeMillis() - t2);*/
 
         long t3 = System.currentTimeMillis();
 
