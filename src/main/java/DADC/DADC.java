@@ -20,16 +20,16 @@ public class DADC {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         String origin = "dataset/test_origin.csv";
         String add = "dataset/test_new.csv";
-        String path ="dataset/airport.csv";
+        String path ="dataset/1_CLASSIFICATION.csv";
 
 /*        String origin = "dataset/atom_origin.csv";
         String add = "dataset/atom_new.csv";
         String path="dataset/atom.csv";*/
 
-        DADC dadc = new DADC(false,0.01,350);
+        DADC dadc = new DADC(true,0.01,350);
         //dadc.build(path);
         //dadc.buildAdd(origin,add);
-        dadc.buildAdd(path, 0.01);
+        dadc.buildAdd(path, 0.2);
 
         //dadc.buildDelete(path,0.4);
     }
@@ -413,7 +413,7 @@ public class DADC {
         long leastEvidenceToCover = (long) Math.ceil((1 - threshold) * input.getRowCount() * (input.getRowCount() - 1));
 
         /** 获得增量后的dc*/
-        DenialConstraintSet dcSetNew = approxDynamicEvidence.buildInsert(evidenceSetAll, originDCSet, additionDCSet, leastEvidenceToCover);
+        DenialConstraintSet dcSetNew = approxDynamicEvidence.buildInsertEasy(evidenceSetAll, originDCSet, additionDCSet, leastEvidenceToCover);
 
         long t_dynamic = System.currentTimeMillis() - t03;
         System.out.println(" [TIME] Dynamic time: " + t_dynamic + "ms");

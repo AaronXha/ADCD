@@ -442,6 +442,74 @@ public class ApproxDynamicEvidence {
 
     }
 
+    public DenialConstraintSet buildInsertEasy(EvidenceSet evidenceSet, DenialConstraintSet originDCSet, DenialConstraintSet additionDCSet, long targetNumber){
+        this.evidenceList = evidenceSet.getEvidenceList();
+        this.target = targetNumber;
+        this.limit = evidenceSet.getTotalCount() - target;
+        this.countsIndex = getCountsIndex(evidenceList);
+
+        Set<LongBitSet> setOrigin = originDCSet.getBitSetSet();
+        Set<LongBitSet> setAddition = additionDCSet.getBitSetSet();
+        Set<LongBitSet> setExtra = new HashSet<>(setOrigin);
+        List<LongBitSet> upwardDCList = new ArrayList<>();
+        List<LongBitSet> downwardDCList = new ArrayList<>();
+
+        long t0 = System.currentTimeMillis();
+
+        for(LongBitSet dc: setAddition){
+            // addition上 X 为最小DC
+            if(setOrigin.contains(dc)){
+                minValidDCDemo.add(dc);
+                setExtra.remove(dc);
+                continue;
+            }
+            if(checkDC(dc))
+                upwardDCList.add(dc);
+            else
+                downwardDCList.add(dc);
+        }
+        for(LongBitSet dc: setExtra){
+            if(checkDC(dc))
+                minValidDCDemo.add(dc);
+            else
+                downwardDCList.add(dc);
+        }
+
+        System.out.println(System.currentTimeMillis() - t0);
+
+        long t1 = System.currentTimeMillis();
+
+        for(LongBitSet dc: upwardDCList){
+            upwardTraverse(dc, dc.clone(), true);
+        }
+
+        System.out.println(System.currentTimeMillis() - t1);
+
+        long t2 = System.currentTimeMillis();
+
+        for(LongBitSet dc: downwardDCList){
+            downwardAEI(dc);
+        }
+
+        System.out.println(System.currentTimeMillis() - t2);
+
+        long t4 = System.currentTimeMillis();
+
+        DenialConstraintSet constraints = new DenialConstraintSet();
+        for (LongBitSet rawDC : minValidDCDemo)
+            constraints.add(new DenialConstraint(rawDC));
+
+        System.out.println("  [PACS] Total DC size: " + constraints.size());
+
+        constraints.minimize();
+
+        System.out.println("  [PACS] Min DC size : " + constraints.size());
+
+        System.out.println(System.currentTimeMillis() - t4);
+
+        return constraints;
+    }
+
 
     public DenialConstraintSet buildInsert(EvidenceSet evidenceSet, DenialConstraintSet originDCSet, DenialConstraintSet additionDCSet, long targetNumber){
         this.evidenceList = evidenceSet.getEvidenceList();
