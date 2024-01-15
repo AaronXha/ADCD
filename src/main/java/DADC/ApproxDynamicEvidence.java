@@ -457,10 +457,10 @@ public class ApproxDynamicEvidence {
         long t0 = System.currentTimeMillis();
 
         for(LongBitSet dc: setAddition){
+            setExtra.remove(dc);
             // addition上 X 为最小DC
             if(setOrigin.contains(dc)){
                 minValidDCDemo.add(dc);
-                setExtra.remove(dc);
                 continue;
             }
             if(checkDC(dc))

@@ -1,17 +1,12 @@
 package ADCD.approxcover;
 
-import ADCD.evidence.evidenceSet.Evidence;
 import ADCD.evidence.evidenceSet.EvidenceSet;
 import ADCD.predicate.PredicateBuilder;
 import ch.javasoft.bitset.LongBitSet;
-import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraint;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraintSet;
-import de.metanome.algorithms.dcfinder.predicates.sets.PredicateSet;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import static ADCD.CommonHelper.checkDCs;
 
 public class ApproxDCBuilder {
 

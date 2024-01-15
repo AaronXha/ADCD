@@ -1,18 +1,8 @@
 package de.metanome.algorithms.dcfinder.denialconstraints;
 
-import ch.javasoft.bitset.IBitSet;
 import ch.javasoft.bitset.LongBitSet;
-import ch.javasoft.bitset.search.NTreeSearch;
-import de.metanome.algorithms.dcfinder.predicates.Operator;
 import de.metanome.algorithms.dcfinder.predicates.Predicate;
-import de.metanome.algorithms.dcfinder.predicates.sets.Closure;
 import de.metanome.algorithms.dcfinder.predicates.sets.PredicateSet;
-import de.metanome.algorithms.dcfinder.predicates.sets.PredicateSetFactory;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 public class DenialConstraint {

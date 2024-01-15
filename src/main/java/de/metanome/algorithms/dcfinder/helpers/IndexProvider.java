@@ -1,10 +1,6 @@
 package de.metanome.algorithms.dcfinder.helpers;
 
 import java.util.*;
-import java.util.stream.Stream;
-
-import ch.javasoft.bitset.IBitSet;
-import ch.javasoft.bitset.LongBitSet;
 
 public class IndexProvider<T> {
 

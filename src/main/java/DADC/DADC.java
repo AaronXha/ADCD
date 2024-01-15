@@ -20,7 +20,7 @@ public class DADC {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         String origin = "dataset/test_origin.csv";
         String add = "dataset/test_new.csv";
-        String path ="dataset/1_CLASSIFICATION.csv";
+        String path ="dataset/test.csv";
 
 /*        String origin = "dataset/atom_origin.csv";
         String add = "dataset/atom_new.csv";

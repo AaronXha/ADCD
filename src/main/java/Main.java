@@ -1,10 +1,8 @@
 import ADCD.ADCD;
-import ADCD.evidence.evidenceSet.EvidenceSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraint;
 import de.metanome.algorithms.dcfinder.denialconstraints.DenialConstraintSet;
-import de.metanome.algorithms.dcfinder.predicates.Predicate;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
